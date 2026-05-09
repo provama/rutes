@@ -3,11 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
-  <title>LOGO · Rutes i Gestió</title>
-  <link rel="manifest" href="data:application/manifest+json,{&quot;name&quot;:&quot;LOGO Rutes&quot;,&quot;short_name&quot;:&quot;LOGO Rutes&quot;,&quot;start_url&quot;:&quot;.&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;background_color&quot;:&quot;#0f3b5f&quot;,&quot;theme_color&quot;:&quot;#0f3b5f&quot;,&quot;icons&quot;:[{&quot;src&quot;:&quot;data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚛</text></svg>&quot;,&quot;sizes&quot;:&quot;180x180&quot;,&quot;type&quot;:&quot;image/svg+xml&quot;}]}">
+  <title>LOGO Rutes · Admin</title>
+  <link rel="manifest" href="data:application/manifest+json,{&quot;name&quot;:&quot;LOGO Rutes Admin&quot;,&quot;short_name&quot;:&quot;LOGO Admin&quot;,&quot;start_url&quot;:&quot;.&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;background_color&quot;:&quot;#0f3b5f&quot;,&quot;theme_color&quot;:&quot;#0f3b5f&quot;,&quot;icons&quot;:[{&quot;src&quot;:&quot;data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👑</text></svg>&quot;,&quot;sizes&quot;:&quot;180x180&quot;,&quot;type&quot;:&quot;image/svg+xml&quot;}]}">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <style>
     :root {
@@ -16,6 +18,7 @@
       --secondary: #f59e0b;
       --success: #10b981;
       --danger: #e74c3c;
+      --info: #3b82f6;
       --gray-100: #f8fafc;
       --gray-200: #e2e8f0;
       --gray-600: #64748b;
@@ -29,7 +32,7 @@
       padding: 12px; padding-bottom: 80px; color: #1e293b; min-height: 100vh;
     }
     .app-container {
-      max-width: 1200px; margin: 0 auto;
+      max-width: 1400px; margin: 0 auto;
       background: rgba(255,255,255,0.85); backdrop-filter: blur(16px);
       border-radius: 32px; padding: 20px; box-shadow: var(--shadow);
     }
@@ -37,25 +40,30 @@
       display: flex; justify-content: space-between; align-items: center;
       flex-wrap: wrap; margin-bottom: 24px; padding-bottom: 12px;
       border-bottom: 2px solid var(--gray-200);
+      gap: 12px;
     }
     .logo { font-size: 1.8rem; font-weight: 800; color: var(--primary); }
     .logo i { color: var(--secondary); margin-right: 8px; }
     .user-panel { display: flex; gap: 10px; align-items: center; font-size: 0.9rem; flex-wrap: wrap; }
-    .connection-indicator {
-      width: 16px; height: 16px; border-radius: 50%; display: inline-block;
-      margin-left: 6px; cursor: pointer;
+    .notification-bell {
+      position: relative;
+      cursor: pointer;
+      background: var(--gray-100);
+      padding: 8px 12px;
+      border-radius: 30px;
+      transition: all 0.3s;
     }
-    .offline-badge {
-      background: #ff9800; color: white; padding: 4px 12px; border-radius: 20px;
-      font-size: 0.7rem; font-weight: bold; display: inline-flex; align-items: center; gap: 4px;
-    }
+    .notification-bell:hover { background: var(--gray-200); }
     .notification-badge {
-      background: var(--danger); color: white; border-radius: 50%;
-      padding: 2px 6px; font-size: 0.7rem; margin-left: 5px;
-    }
-    .btn-notification {
-      background: #2196f3; color: white; border: none;
-      padding: 6px 12px; border-radius: 20px; cursor: pointer; font-size: 0.8rem;
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      background: var(--danger);
+      color: white;
+      border-radius: 50%;
+      padding: 2px 6px;
+      font-size: 0.7rem;
+      font-weight: bold;
     }
     .btn-logout {
       background: var(--danger); color: white; border: none;
@@ -96,10 +104,33 @@
       overflow-x: auto; border-radius: 16px; border: 1px solid var(--gray-200);
       -webkit-overflow-scrolling: touch;
     }
-    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 500px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 600px; }
     th { background: var(--primary); color: white; padding: 12px; text-align: left; position: sticky; top: 0; }
     td { padding: 10px 12px; border-bottom: 1px solid var(--gray-200); }
     tbody tr:hover { background: #e0f2fe; }
+    .pueblo-group {
+      background-color: #eef2ff;
+      font-weight: bold;
+    }
+    .pueblo-group td {
+      background-color: #eef2ff;
+      border-top: 2px solid var(--primary);
+      border-bottom: 2px solid var(--primary);
+    }
+    .resum-poble-card {
+      background: var(--gray-100);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    .resum-poble-titol {
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: var(--primary);
+      margin-bottom: 12px;
+      border-bottom: 2px solid var(--secondary);
+      padding-bottom: 6px;
+    }
     .tipus-badge {
       display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px;
       border-radius: 30px; font-size: 0.75rem; font-weight: 600; color: white;
@@ -116,20 +147,10 @@
     .btn-danger { background: var(--danger); color: white; }
     .btn-secondary { background: var(--gray-600); color: white; }
     .btn-warning { background: var(--secondary); color: white; }
-    .btn-outline { background: white; border: 2px solid var(--primary); color: var(--primary); }
-    .btn-icon { background: transparent; border: none; font-size: 1.5rem; cursor: pointer; color: var(--primary); }
-    .btn-icon:hover { color: var(--secondary); }
+    .btn-info { background: var(--info); color: white; }
     input, select, textarea {
       width: 100%; padding: 10px 16px; margin: 4px 0 12px; border-radius: 16px;
       border: 1px solid var(--gray-200); font-size: 15px; background: white;
-    }
-    input:focus, select:focus, textarea:focus {
-      border-color: var(--primary); box-shadow: 0 0 0 3px rgba(15,59,95,0.1); outline: none;
-    }
-    .driver-highlight {
-      background: #fff7e0; border-left: 6px solid var(--secondary); padding: 16px 20px;
-      border-radius: 16px; margin-bottom: 20px; display: flex; align-items: center;
-      justify-content: space-between; font-weight: 600;
     }
     .checkbox-group {
       display: flex; flex-wrap: wrap; gap: 10px; padding: 12px; background: var(--gray-100);
@@ -140,7 +161,6 @@
       display: flex; align-items: center; gap: 8px; padding: 6px 14px;
       background: white; border-radius: 20px; border: 1px solid var(--gray-200); cursor: pointer;
     }
-    .checkbox-group input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--primary); }
     .hidden { display: none; }
     .toast {
       position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
@@ -158,20 +178,39 @@
       background: white; border-radius: 48px; padding: 40px 32px;
       width: 90%; max-width: 420px; text-align: center; box-shadow: 0 25px 50px rgba(0,0,0,0.3);
     }
-    .llista-pendents {
-      max-height: 400px; overflow-y: auto; margin-top: 12px; border: 1px solid var(--gray-200);
-      border-radius: 16px; padding: 8px; background: var(--gray-100);
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 10001;
+      justify-content: center;
+      align-items: center;
     }
-    .pagination { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 16px; }
-    .pagination button { padding: 8px 20px; }
-    .pagination span { font-weight: 600; }
-    .backup-item {
-      background: var(--gray-100); padding: 12px; border-radius: 12px;
-      margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;
+    .modal-content {
+      background: white;
+      border-radius: 24px;
+      padding: 24px;
+      max-width: 500px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
     }
-    .sync-pending {
-      background: #fff3cd; border-left: 4px solid #ffc107; padding: 12px;
-      border-radius: 12px; margin-bottom: 16px;
+    #mapaRutes {
+      height: 400px;
+      border-radius: 16px;
+      margin-top: 16px;
+      z-index: 1;
+    }
+    .badge-admin {
+      background: var(--secondary);
+      color: white;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 0.7rem;
     }
     @media (max-width: 768px) {
       .app-container { padding: 12px; }
@@ -186,52 +225,100 @@
 <!-- LOGIN -->
 <div id="loginOverlay" class="login-overlay">
   <div class="login-card">
-    <div style="font-size:3.5rem; font-weight:800; color:var(--primary);">🚛</div>
-    <h2 style="color:var(--primary); margin-bottom:24px;">LOGO Rutes</h2>
-    <input type="email" id="loginUser" placeholder="Correu electrònic" value="provama@provama.com">
-    <input type="password" id="loginPass" placeholder="Contrasenya" value="provama123">
+    <div style="font-size:3.5rem; font-weight:800; color:var(--primary);">👑</div>
+    <h2 style="color:var(--primary); margin-bottom:24px;">LOGO Rutes Admin</h2>
+    <input type="email" id="loginUser" placeholder="Correu electrònic" value="admin@logo.com">
+    <input type="password" id="loginPass" placeholder="Contrasenya" value="admin123">
     <button id="btnLogin" style="width:100%; padding:14px; background:var(--primary); color:white; border:none; border-radius:30px; font-weight:700; font-size:16px; cursor:pointer; margin-bottom:10px;">Iniciar sessió</button>
     <div id="loginError" style="color:var(--danger); margin-top:12px; font-weight:500;"></div>
-    <p style="margin-top:16px; font-size:0.8rem; color:var(--gray-600);">prova: provama@provama.com / provama123</p>
+    <p style="margin-top:16px; font-size:0.8rem; color:var(--gray-600);">
+      <strong>Accés exclusiu per a administradors</strong><br>
+      👑 Admin: admin@logo.com / admin123
+    </p>
   </div>
 </div>
 
 <!-- APP PRINCIPAL -->
 <div id="mainMenu" class="app-container" style="display:none;">
   <div class="app-header">
-    <div class="logo"><i class="fas fa-recycle"></i> LOGO Rutes</div>
+    <div class="logo"><i class="fas fa-crown"></i> LOGO Rutes <span class="badge-admin">ADMIN</span></div>
     <div class="user-panel">
-      <i class="fas fa-user-hard-hat"></i> <span id="currentUserMenu"></span>
-      <span style="background:var(--primary); color:white; padding:2px 10px; border-radius:20px; font-size:0.75rem;" id="userRoleMenu"></span>
-      <button id="btnActivarNotificacions" class="btn-notification"><i class="fas fa-bell"></i> <span id="notifStatus">Activar notificacions</span></button>
+      <i class="fas fa-user-shield"></i> <span id="currentUserMenu"></span>
+      <div id="notificationBell" class="notification-bell">
+        <i class="fas fa-bell"></i>
+        <span id="notifCount" class="notification-badge" style="display:none;">0</span>
+      </div>
       <span id="onlineStatus" class="offline-badge" style="background:#10b981;"><i class="fas fa-wifi"></i> Online</span>
-      <span id="supabaseIndicator" class="connection-indicator" title="Comprovant connexió..."></span>
       <button class="btn-logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Sortir</button>
     </div>
   </div>
 
   <div class="tabs">
-    <button class="tab-btn active" data-tab="rutes"><i class="fas fa-truck"></i> Rutes</button>
+    <button class="tab-btn active" data-tab="dashboard"><i class="fas fa-chart-line"></i> Dashboard</button>
+    <button class="tab-btn" data-tab="rutes"><i class="fas fa-truck"></i> Rutes</button>
+    <button class="tab-btn" data-tab="notificacions"><i class="fas fa-bell"></i> Notificacions</button>
     <button class="tab-btn" data-tab="config"><i class="fas fa-cog"></i> Configuració</button>
-    <button class="tab-btn" data-tab="gestio" id="tabGestioBtn" style="display:none;"><i class="fas fa-tasks"></i> Gestió</button>
+    <button class="tab-btn" data-tab="gestio"><i class="fas fa-tasks"></i> Gestió</button>
   </div>
 
-  <!-- ===== NOTIFICACIONES FLOTANTES ===== -->
-  <div id="notificationContainer" style="position:fixed; top:80px; right:20px; z-index:10000; max-width:350px;"></div>
+  <!-- NOTIFICACIONS MODAL -->
+  <div id="notificationsModal" class="modal">
+    <div class="modal-content">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h3><i class="fas fa-bell"></i> Notificacions</h3>
+        <button onclick="closeNotificationsModal()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+      </div>
+      <div id="llistaNotificacionsModal" style="max-height:400px; overflow-y:auto;"></div>
+    </div>
+  </div>
+
+  <!-- ===== DASHBOARD ===== -->
+  <div id="tab-dashboard" class="tab-content active">
+    <div class="card">
+      <h3><i class="fas fa-chart-line"></i> Resum del sistema</h3>
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap:16px; margin-bottom:20px;">
+        <div style="background:var(--gray-100); padding:20px; border-radius:16px; text-align:center;">
+          <i class="fas fa-dumpster" style="font-size:2rem; color:var(--primary);"></i>
+          <div style="font-size:2rem; font-weight:bold;" id="totalContenidors">0</div>
+          <div>Total Contenidors</div>
+        </div>
+        <div style="background:var(--gray-100); padding:20px; border-radius:16px; text-align:center;">
+          <i class="fas fa-check-circle" style="font-size:2rem; color:var(--success);"></i>
+          <div style="font-size:2rem; font-weight:bold;" id="totalFets">0</div>
+          <div>Contenidors Fets</div>
+        </div>
+        <div style="background:var(--gray-100); padding:20px; border-radius:16px; text-align:center;">
+          <i class="fas fa-clock" style="font-size:2rem; color:var(--secondary);"></i>
+          <div style="font-size:2rem; font-weight:bold;" id="totalPendents">0</div>
+          <div>Contenidors Pendents</div>
+        </div>
+        <div style="background:var(--gray-100); padding:20px; border-radius:16px; text-align:center;">
+          <i class="fas fa-users" style="font-size:2rem; color:var(--info);"></i>
+          <div style="font-size:2rem; font-weight:bold;" id="totalUsuaris">0</div>
+          <div>Usuaris Actius</div>
+        </div>
+      </div>
+      <div class="table-wrapper">
+        <table id="taulaDashboardResum">
+          <thead><tr><th>Poble</th><th>Total</th><th>Fets</th><th>Pendents</th><th>% Compleció</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 
   <!-- ===== RUTES ===== -->
-  <div id="tab-rutes" class="tab-content active">
+  <div id="tab-rutes" class="tab-content">
     <div class="sub-tabs">
-      <button class="sub-tab-btn active" data-subtab="rutes-llistat"><i class="fas fa-list"></i> Llistat</button>
-      <button class="sub-tab-btn" data-subtab="rutes-planificacio"><i class="fas fa-route"></i> Planificació</button>
-      <button class="sub-tab-btn" data-subtab="rutes-reforc"><i class="fas fa-shield-alt"></i> Reforç</button>
-      <button class="sub-tab-btn" data-subtab="rutes-comentaris"><i class="fas fa-comment-dots"></i> Comentaris</button>
+      <button class="sub-tab-btn active" data-subtab="rutes-llistat"><i class="fas fa-list"></i> Llistat detallat</button>
+      <button class="sub-tab-btn" data-subtab="rutes-resum"><i class="fas fa-chart-simple"></i> Resum per poble</button>
+      <button class="sub-tab-btn" data-subtab="rutes-mapa"><i class="fas fa-map"></i> Mapa</button>
     </div>
 
-    <!-- Llistat -->
+    <!-- Llistat detallat -->
     <div id="sub-rutes-llistat" class="sub-tab-content active">
       <div class="card">
-        <h3><i class="fas fa-container-storage"></i> Contenidors</h3>
+        <h3><i class="fas fa-container-storage"></i> Contenidors - Llistat detallat</h3>
         <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
           <select id="rutesPobleSelect"><option value="">Tots els pobles</option></select>
           <select id="rutesFraccioFiltre">
@@ -239,11 +326,16 @@
             <option value="Orgànica">Orgànica</option><option value="Resta">Resta</option>
             <option value="Envasos">Envasos</option><option value="Paper">Paper</option><option value="Vidre">Vidre</option>
           </select>
+          <select id="rutesEstatFiltre">
+            <option value="">Tots els estats</option>
+            <option value="Fet">✅ Fet</option>
+            <option value="No fet">⭕ No fet</option>
+          </select>
           <input type="text" id="quickSearchRoutes" placeholder="🔍 Cerca ràpida..." style="flex:1; min-width:150px;">
         </div>
         <div class="table-wrapper">
           <table id="taulaRutes">
-            <thead><tr><th>Núm.</th><th>Tipus</th><th>Poble</th><th>Carrer</th><th>Estat</th><th>Mapa</th></tr></thead>
+            <thead><tr><th>Poble</th><th>Carrer</th><th>Núm.</th><th>Tipus</th><th>Estat</th><th>Conductor assignat</th><th>Accions</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
@@ -255,194 +347,103 @@
       </div>
     </div>
 
-    <!-- Planificació -->
-    <div id="sub-rutes-planificacio" class="sub-tab-content">
-      <div class="driver-highlight">
-        <div style="display:flex; align-items:center; gap:12px;">
-          <i class="fas fa-user-hard-hat" style="font-size:2rem; color:var(--secondary);"></i>
-          <div>
-            <div style="font-size:1.2rem;" id="displayConductor">—</div>
-            <div style="font-size:0.8rem; color:var(--gray-600);" id="driverDateHint"></div>
-          </div>
-        </div>
-        <i class="fas fa-check-circle" style="color:var(--success); font-size:1.8rem;"></i>
-      </div>
+    <!-- Resum per poble -->
+    <div id="sub-rutes-resum" class="sub-tab-content">
       <div class="card">
-        <h3><i class="fas fa-map-marked-alt"></i> Planificació de ruta</h3>
-        <div style="display:flex; gap:12px; flex-wrap:wrap;">
-          <div style="flex:1;"><label>Poble</label><select id="rutaPobleSelect"><option value="">Selecciona un poble</option></select></div>
-          <div style="flex:1;"><label>Fracció</label><select id="rutaRapidaFraccio"><option value="">Totes</option><option value="Orgànica">Orgànica</option><option value="Resta">Resta</option><option value="Envasos">Envasos</option><option value="Paper">Paper</option><option value="Vidre">Vidre</option></select></div>
+        <h3><i class="fas fa-chart-simple"></i> Resum per poble i fracció</h3>
+        <div style="margin-bottom:16px;">
+          <input type="text" id="resumSearch" placeholder="🔍 Cerca poble..." style="max-width:300px;">
         </div>
-        <div class="llista-pendents" id="llistaPendentsPlanificacio">
-          <table id="taulaPendentsPlanificacio">
-            <thead><tr><th>Carrer</th><th>Núm.</th><th>Tipus</th><th>Mapa</th></tr></thead>
-            <tbody></tbody>
-          </table>
-          <p id="sensePendents" style="padding:12px; text-align:center;">Selecciona un poble per veure els contenidors pendents.</p>
-        </div>
-        <div style="display:flex; gap:16px; margin-top:16px; align-items:center;">
-          <button id="btnGenerarEnllacRapid" class="btn-icon" title="Obrir a Google Maps"><i class="fas fa-map-marked-alt fa-2x"></i></button>
-          <button id="btnStreetViewRuta" class="btn-icon" title="Street View"><i class="fas fa-street-view fa-2x"></i></button>
-          <button id="btnMarcarRutaFeta" class="btn-sm btn-success"><i class="fas fa-check-double"></i> Marcar com a feta</button>
-        </div>
-        <p style="margin-top:8px; color:var(--gray-600);">
-          <i class="far fa-clock"></i> Temps estimat: <strong id="rutaTempsEstimat">-</strong> &nbsp;|&nbsp;
-          <i class="fas fa-dumpster"></i> Contenidors: <strong id="numContenidorsPlanificacio">-</strong>
-        </p>
+        <div id="resumPoblesContainer"></div>
       </div>
     </div>
 
-    <!-- Reforç -->
-    <div id="sub-rutes-reforc" class="sub-tab-content">
+    <!-- Mapa -->
+    <div id="sub-rutes-mapa" class="sub-tab-content">
       <div class="card">
-        <h3><i class="fas fa-shield-alt"></i> Rutes de Reforç</h3>
-        <div id="infoReforçAdmin" style="display:none; background:#eff6ff; padding:12px; border-radius:12px; margin-bottom:12px;">
-          <i class="fas fa-info-circle"></i> Crea rutes de reforç des de <strong>Gestió > Rutes Reforç</strong>.
+        <h3><i class="fas fa-map"></i> Mapa de contenidors</h3>
+        <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+          <select id="mapaPobleSelect"><option value="">Tots els pobles</option></select>
+          <select id="mapaFraccioSelect"><option value="">Totes les fraccions</option>
+            <option value="Orgànica">🍂 Orgànica</option><option value="Resta">🗑️ Resta</option>
+            <option value="Envasos">🥫 Envasos</option><option value="Paper">📄 Paper</option><option value="Vidre">🍾 Vidre</option>
+          </select>
+          <button id="btnMapaActualitzar" class="btn-sm btn-success"><i class="fas fa-search"></i> Actualitzar</button>
+          <button id="btnMapaMevaUbicacio" class="btn-sm btn-secondary"><i class="fas fa-location-dot"></i> La meva ubicació</button>
         </div>
-        <div class="table-wrapper">
-          <table id="taulaReforcRutes">
-            <thead><tr><th>Nom</th><th>Fracció</th><th>Pobles</th><th>Carrers</th></td></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-        <div id="detallReforçSeleccionat" style="margin-top:16px; display:none;">
-          <h4>Detall de la ruta</h4>
-          <div class="table-wrapper">
-            <table id="taulaDetallReforç">
-              <thead><tr><th>Poble</th><th>Carrer</th><th>Mapa</th></tr></thead>
-              <tbody></tbody>
-            </table>
-          </div>
-          <p style="margin-top:8px;">
-            <strong><i class="far fa-clock"></i> Temps estimat:</strong> <span id="tempsReforç">-</span> &nbsp;|&nbsp;
-            <strong><i class="fas fa-dumpster"></i> Contenidors:</strong> <span id="numContenidorsReforç">-</span>
-          </p>
-          <div style="display:flex; gap:10px; align-items:center; margin-top:8px;">
-            <label>Inici pel poble:</label>
-            <select id="refPobleInici" style="width:auto;"></select>
-            <button id="btnReforçObrirMaps" class="btn-sm btn-success"><i class="fas fa-map-marked-alt"></i> Obrir a Google Maps</button>
-            <button id="btnReforçStreetView" class="btn-sm btn-secondary"><i class="fas fa-street-view"></i> Street View</button>
-          </div>
-        </div>
+        <div id="mapaRutes" style="height: 500px; border-radius: 16px;"></div>
       </div>
     </div>
+  </div>
 
-    <!-- Comentaris -->
-    <div id="sub-rutes-comentaris" class="sub-tab-content">
-      <div class="card">
-        <h3><i class="fas fa-comments"></i> Comentaris per poble</h3>
-        <select id="comentariPobleSelect"><option value="">Selecciona un poble</option></select>
-        <textarea id="comentariRuta" placeholder="Escriu una incidència..." rows="2"></textarea>
-        <button id="btnGuardarComentari" class="btn-sm btn-success" style="margin-top:8px;"><i class="fas fa-save"></i> Guardar</button>
-        <div id="llistaComentaris" style="margin-top:12px; max-height:200px; overflow-y:auto; background:var(--gray-100); border-radius:12px; padding:8px;"></div>
+  <!-- ===== NOTIFICACIONS PAGE ===== -->
+  <div id="tab-notificacions" class="tab-content">
+    <div class="card">
+      <h3><i class="fas fa-bell"></i> Centre de Notificacions</h3>
+      <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+        <button id="btnNotifMarcarTotes" class="btn-sm btn-info"><i class="fas fa-check-double"></i> Marcar totes llegides</button>
+        <button id="btnNotifEliminarLlegides" class="btn-sm btn-secondary"><i class="fas fa-trash"></i> Eliminar llegides</button>
       </div>
+      <div class="table-wrapper">
+        <table id="taulaNotificacions">
+          <thead><tr><th>Data</th><th>Tipus</th><th>Missatge</th><th>Estat</th><th>Accions</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <h3><i class="fas fa-paper-plane"></i> Enviar notificació a conductors</h3>
+      <select id="notifDestinatari">
+        <option value="tots">Tots els conductors</option>
+        <option value="actius">Conductors actius (online)</option>
+      </select>
+      <select id="notifTipus">
+        <option value="info">ℹ️ Informació</option>
+        <option value="warning">⚠️ Avís</option>
+        <option value="success">✅ Èxit</option>
+        <option value="urgent">🔴 Urgent</option>
+      </select>
+      <input type="text" id="notifTitol" placeholder="Títol de la notificació">
+      <textarea id="notifMissatge" placeholder="Missatge..." rows="3"></textarea>
+      <button id="btnEnviarNotificacio" class="btn-sm btn-success"><i class="fas fa-paper-plane"></i> Enviar notificació</button>
     </div>
   </div>
 
   <!-- ===== CONFIGURACIÓ ===== -->
   <div id="tab-config" class="tab-content">
     <div class="card">
-      <h3><i class="fas fa-users"></i> Usuaris</h3>
-      <div id="configAdminSection">
-        <div style="margin-bottom:12px;">
-          <button id="btnMostrarFormUsuari" class="btn-sm btn-success"><i class="fas fa-plus"></i> Afegir usuari</button>
-        </div>
-        <div id="formAfegirUsuari" class="hidden">
-          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
-            <input type="email" id="nouUserEmail" placeholder="Correu (obligatori)" style="flex:1;">
-            <input type="password" id="nouUserPass" placeholder="Contrasenya (només per a nous)" style="flex:1;">
-            <input type="text" id="nouDisplayName" placeholder="Nom conductor" style="flex:1;">
-            <select id="nouRol"><option value="operari">Operari</option><option value="admin">Admin</option></select>
-            <button id="btnAfegirUsuari" class="btn-sm btn-success">Afegir</button>
-            <button id="btnCancelarFormUsuari" class="btn-sm btn-secondary">Cancel·lar</button>
-          </div>
-        </div>
-        <div class="table-wrapper">
-          <table id="taulaUsuaris">
-            <thead><tr><th>Operari</th><th>Rol</th><th></th></tr></thead>
-            <tbody></tbody>
-          </table>
+      <h3><i class="fas fa-users"></i> Gestió d'Usuaris Conductors</h3>
+      <button id="btnMostrarFormUsuari" class="btn-sm btn-success"><i class="fas fa-plus"></i> Afegir conductor</button>
+      <div id="formAfegirUsuari" class="hidden" style="margin-top:12px;">
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <input type="email" id="nouUserEmail" placeholder="Correu conductor">
+          <input type="password" id="nouUserPass" placeholder="Contrasenya">
+          <input type="text" id="nouDisplayName" placeholder="Nom conductor">
+          <button id="btnAfegirUsuari" class="btn-sm btn-success">Afegir conductor</button>
+          <button id="btnCancelarFormUsuari" class="btn-sm btn-secondary">Cancel·lar</button>
         </div>
       </div>
-      <div id="configNoAdmin" style="display:none;"><p>Accés restringit.</p></div>
+      <div class="table-wrapper" style="margin-top:12px;">
+        <table id="taulaUsuaris"><thead><tr><th>Nom</th><th>Correu</th><th>Última connexió</th><th>Accions</th></tr></thead><tbody></tbody></table>
+      </div>
     </div>
-
-    <!-- NOTIFICACIONES CONFIG -->
     <div class="card">
-      <h3><i class="fas fa-bell"></i> Configuració de Notificacions</h3>
-      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap:16px;">
-        <div>
-          <label style="display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" id="notifRutesPendents" checked> <span><i class="fas fa-truck"></i> Rutes pendents</span>
-          </label>
-        </div>
-        <div>
-          <label style="display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" id="notifRecordatoris" checked> <span><i class="fas fa-clock"></i> Recordatoris horaris</span>
-          </label>
-        </div>
-        <div>
-          <label style="display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" id="notifComentaris" checked> <span><i class="fas fa-comment"></i> Nous comentaris</span>
-          </label>
-        </div>
-        <div>
-          <label style="display:flex; align-items:center; gap:8px;">
-            <input type="checkbox" id="notifSync" checked> <span><i class="fas fa-sync-alt"></i> Sincronització</span>
-          </label>
-        </div>
+      <h3><i class="fas fa-user-check"></i> Assignar conductors a pobles</h3>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <select id="assignPoble" style="flex:1;"><option value="">Selecciona poble</option></select>
+        <select id="assignConductor" style="flex:1;"><option value="">Selecciona conductor</option></select>
+        <button id="btnAssignarConductor" class="btn-sm btn-success"><i class="fas fa-save"></i> Assignar</button>
       </div>
-      <div style="margin-top:16px; display:flex; gap:8px;">
-        <button id="btnProvaNotificacio" class="btn-sm btn-warning"><i class="fas fa-bell"></i> Prova notificació</button>
-        <button id="btnEnviarRecordatori" class="btn-sm btn-success"><i class="fas fa-calendar-check"></i> Enviar recordatori ara</button>
+      <div class="table-wrapper" style="margin-top:12px;">
+        <table id="taulaAssignacions"><thead><tr><th>Poble</th><th>Fracció</th><th>Conductor assignat</th><th>Data</th><th>Accions</th></tr></thead><tbody></tbody></table>
       </div>
     </div>
-
-    <!-- PANEL DE COPIA DE SEGURIDAD -->
-    <div class="card">
-      <h3><i class="fas fa-database"></i> Copia de Seguretat</h3>
-      <div id="backupPanel">
-        <div class="sync-pending" id="pendingSyncAlert" style="display:none;">
-          <i class="fas fa-sync-alt fa-spin"></i> Tens <span id="pendingCount">0</span> accions pendents de sincronitzar. 
-          <button id="forceSyncBtn" class="btn-sm btn-success" style="margin-left:8px;"><i class="fas fa-upload"></i> Sincronitzar ara</button>
-        </div>
-        
-        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(250px,1fr)); gap:16px; margin-bottom:16px;">
-          <div style="background:var(--gray-100); padding:16px; border-radius:16px;">
-            <i class="fas fa-download" style="color:var(--success); font-size:1.5rem;"></i>
-            <h4>Exportar Backup</h4>
-            <p style="font-size:0.8rem; margin:8px 0;">Exporta totes les dades</p>
-            <button id="btnExportarBackup" class="btn-sm btn-success"><i class="fas fa-file-export"></i> Exportar Backup</button>
-          </div>
-          <div style="background:var(--gray-100); padding:16px; border-radius:16px;">
-            <i class="fas fa-upload" style="color:var(--primary); font-size:1.5rem;"></i>
-            <h4>Importar Backup</h4>
-            <p style="font-size:0.8rem; margin:8px 0;">Restaura una copia prèvia</p>
-            <input type="file" id="restoreFileInput" accept=".json" style="display:none;">
-            <button id="btnImportarBackup" class="btn-sm btn-primary" style="background:var(--primary);"><i class="fas fa-file-import"></i> Importar Backup</button>
-          </div>
-          <div style="background:var(--gray-100); padding:16px; border-radius:16px;">
-            <i class="fas fa-calendar-alt" style="color:var(--secondary); font-size:1.5rem;"></i>
-            <h4>Backup Automàtic</h4>
-            <p style="font-size:0.8rem; margin:8px 0;">Còpies automàtiques setmanals</p>
-            <div style="display:flex; gap:8px;">
-              <button id="btnConfigurarAutoBackup" class="btn-sm btn-secondary"><i class="fas fa-clock"></i> Activar</button>
-              <span id="autoBackupStatus" style="font-size:0.7rem;"></span>
-            </div>
-          </div>
-        </div>
-        
-        <div>
-          <h4>Backups anteriors</h4>
-          <div id="llistaBackupsLocals" style="max-height:200px; overflow-y:auto;"></div>
-        </div>
-      </div>
-    </div>
-
     <div class="card">
       <h3><i class="fas fa-tools"></i> Eines</h3>
-      <div><button id="btnCarregarExemple" class="btn-sm btn-warning"><i class="fas fa-database"></i> Carregar dades exemple</button></div>
-      <div style="margin-top:8px;"><button id="btnNetejarCacheOffline" class="btn-sm btn-danger"><i class="fas fa-trash"></i> Netejar cache offline</button></div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button id="btnCarregarExemple" class="btn-sm btn-warning"><i class="fas fa-database"></i> Carregar dades exemple</button>
+        <button id="btnNetejarDades" class="btn-sm btn-danger"><i class="fas fa-trash"></i> Netejar totes les dades</button>
+      </div>
     </div>
   </div>
 
@@ -452,116 +453,44 @@
       <button class="sub-tab-btn active" data-subtab="gestio-pobles"><i class="fas fa-city"></i> Pobles</button>
       <button class="sub-tab-btn" data-subtab="gestio-contenidors"><i class="fas fa-box"></i> Contenidors</button>
       <button class="sub-tab-btn" data-subtab="gestio-reforc"><i class="fas fa-shield-alt"></i> Rutes Reforç</button>
-      <button class="sub-tab-btn" data-subtab="gestio-plantilles"><i class="fas fa-file-excel"></i> Plantilles</button>
     </div>
 
-    <!-- Pobles -->
     <div id="sub-gestio-pobles" class="sub-tab-content active">
       <div class="card">
-        <h3><i class="fas fa-city"></i> Gestió de Pobles</h3>
-        <div style="display:flex; gap:8px; margin-bottom:12px;">
-          <input type="text" id="nouPoble" placeholder="Nom del poble">
-          <button id="btnAfegirPoble" class="btn-sm btn-success"><i class="fas fa-plus"></i> Afegir</button>
-        </div>
-        <div class="table-wrapper">
-          <table id="taulaPobles"><thead><tr><th>Poble</th><th>Accions</th></tr></thead><tbody></tbody></table>
-        </div>
+        <h3>Gestió de Pobles</h3>
+        <div style="display:flex; gap:8px;"><input type="text" id="nouPoble" placeholder="Nom del poble"><button id="btnAfegirPoble" class="btn-sm btn-success">Afegir</button></div>
+        <div class="table-wrapper" style="margin-top:12px;"><table id="taulaPobles"><thead><tr><th>Poble</th><th>Accions</th></tr></thead><tbody></tbody></table></div>
       </div>
     </div>
 
-    <!-- Contenidors -->
     <div id="sub-gestio-contenidors" class="sub-tab-content">
       <div class="card">
-        <h3><i class="fas fa-plus-circle"></i> Afegir / Editar contenidors</h3>
-        <div style="display:flex; gap:10px;">
-          <input type="text" id="gestCarrer" placeholder="Carrer" style="flex:2;">
-          <input type="text" id="gestNumero" placeholder="Número" style="flex:1;">
-        </div>
-        <select id="gestPoble"><option value="">Poble</option></select>
-        <label style="font-weight:600; margin-top:8px;">Fraccions i quantitats</label>
-        <div id="gestFraccionsQuantitats"></div>
-        <div style="display:flex; gap:10px; align-items:center; margin-top:8px;">
-          <input type="number" id="gestLat" placeholder="Latitud" step="any" style="flex:1;">
-          <input type="number" id="gestLng" placeholder="Longitud" step="any" style="flex:1;">
-          <button id="btnCapturarUbicacio" class="btn-sm btn-warning" title="Fes servir la ubicació actual"><i class="fas fa-map-marker-alt"></i> 📍 Capturar ubicació</button>
-        </div>
+        <h3>Afegir / Editar contenidor</h3>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;"><input type="text" id="gestCarrer" placeholder="Carrer" style="flex:2;"><input type="text" id="gestNumero" placeholder="Número" style="flex:1;"></div>
+        <select id="gestPoble"><option value="">Selecciona poble</option></select>
+        <select id="gestTipus"><option value="">Selecciona tipus</option><option value="Orgànica">🍂 Orgànica</option><option value="Resta">🗑️ Resta</option><option value="Envasos">🥫 Envasos</option><option value="Paper">📄 Paper</option><option value="Vidre">🍾 Vidre</option></select>
+        <div style="display:flex; gap:10px;"><input type="number" id="gestLat" placeholder="Latitud" step="any"><input type="number" id="gestLng" placeholder="Longitud" step="any"><button id="btnCapturarUbicacio" class="btn-sm btn-warning"><i class="fas fa-map-marker-alt"></i> 📍 Capturar</button></div>
         <input type="hidden" id="gestEditId">
-        <div style="margin-top:10px;">
-          <button id="btnGuardarContenidor" class="btn-sm btn-success">Guardar</button>
-          <button id="btnCancelarEdicio" class="btn-sm btn-secondary" style="display:none;">Cancel·lar</button>
-        </div>
+        <div><button id="btnGuardarContenidor" class="btn-sm btn-success">Guardar</button><button id="btnCancelarEdicio" class="btn-sm btn-secondary" style="display:none;">Cancel·lar</button></div>
       </div>
       <div class="card">
-        <h3>Llistat</h3>
-        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
-          <select id="filtrePobleSelect"><option value="">Tots els pobles</option></select>
-          <input type="text" id="filtreCarrer" placeholder="Carrer">
-          <input type="text" id="filtreNumero" placeholder="Número">
-          <select id="filtreTipus"><option value="">Tipus</option><option value="Orgànica">Orgànica</option><option value="Resta">Resta</option><option value="Envasos">Envasos</option><option value="Paper">Paper</option><option value="Vidre">Vidre</option></select>
-          <input type="text" id="quickSearchGestio" placeholder="🔍 Cerca">
-          <button id="btnAplicarFiltres" class="btn-sm btn-success">Filtrar</button>
-          <button id="btnNetejarFiltres" class="btn-sm btn-secondary">Netejar</button>
-        </div>
-        <div class="table-wrapper">
-          <table id="taulaGestio"><thead><tr><th>Carrer</th><th>Núm.</th><th>Tipus</th><th>Poble</th><th>Coord.</th><th>Accions</th></tr></thead><tbody></tbody></table>
-        </div>
+        <h3>Llistat de contenidors</h3>
+        <div class="table-wrapper"><table id="taulaGestio"><thead><tr><th>Carrer</th><th>Núm.</th><th>Tipus</th><th>Poble</th><th>Coord.</th><th>Accions</th></tr></thead><tbody></tbody></table></div>
       </div>
     </div>
 
-    <!-- Rutes de reforç -->
     <div id="sub-gestio-reforc" class="sub-tab-content">
       <div class="card">
-        <h3>Crear / Editar ruta de reforç</h3>
+        <h3>Crear ruta de reforç</h3>
         <input type="text" id="refNom" placeholder="Nom de la ruta">
         <select id="refFraccio"><option value="">Fracció</option><option value="Orgànica">Orgànica</option><option value="Resta">Resta</option><option value="Envasos">Envasos</option><option value="Paper">Paper</option><option value="Vidre">Vidre</option></select>
-        <label>Pobles</label>
-        <div class="checkbox-group" id="refPoblesCheckboxes"></div>
-        <div class="checkbox-actions" style="margin-bottom:8px;">
-          <button id="btnSelAllPobles" class="btn-sm btn-secondary">Tots</button>
-          <button id="btnDeselAllPobles" class="btn-sm btn-secondary">Cap</button>
-        </div>
-        <label>Carrers</label>
-        <div class="checkbox-group" id="refCarrersCheckboxes" style="max-height:220px;"></div>
-        <div class="checkbox-actions">
-          <button id="btnSelAllCarrers" class="btn-sm btn-success">Tots</button>
-          <button id="btnDeselAllCarrers" class="btn-sm btn-danger">Cap</button>
-          <span style="margin-left:auto;">Seleccionats: <span id="countCarrersSel">0</span></span>
-        </div>
-        <input type="hidden" id="refEditId">
-        <div style="margin-top:10px;">
-          <button id="btnGuardarReforç" class="btn-sm btn-success">Guardar ruta</button>
-          <button id="btnCancelarReforç" class="btn-sm btn-secondary" style="display:none;">Cancel·lar</button>
-        </div>
+        <label>Selecciona carrers:</label>
+        <div class="checkbox-group" id="refCarrersCheckboxes"></div>
+        <button id="btnGuardarReforç" class="btn-sm btn-success">Guardar ruta</button>
       </div>
       <div class="card">
-        <h4>Existents</h4>
-        <div class="table-wrapper">
-          <table id="taulaReforc"><thead><tr><th>Nom</th><th>Fracció</th><th>Pobles</th><th>Carrers</th><th>Excel</th><th>PDF</th><th></th></tr></thead><tbody></tbody></table>
-        </div>
-      </div>
-    </div>
-
-    <!-- Plantilles -->
-    <div id="sub-gestio-plantilles" class="sub-tab-content">
-      <div class="card">
-        <h3><i class="fas fa-file-excel"></i> Gestió de dades</h3>
-        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
-          <button id="btnPlantillaRutes" class="btn-sm btn-secondary"><i class="fas fa-download"></i> Plantilla buida (Excel)</button>
-          <span>Descarrega una plantilla per emplenar i importar.</span>
-        </div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
-          <button id="btnImportarRutes" class="btn-sm btn-secondary"><i class="fas fa-upload"></i> Importar Excel</button>
-          <input type="file" id="fileImportRutes" accept=".xlsx,.xls" hidden>
-        </div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
-          <button id="btnExportarDades" class="btn-sm btn-success"><i class="fas fa-file-export"></i> Exportar contenidors</button>
-        </div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
-          <button id="btnExportarAgrupada" class="btn-sm btn-warning"><i class="fas fa-file-export"></i> Exportar agrupada</button>
-        </div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-          <button id="btnInformePDF" class="btn-sm btn-success"><i class="fas fa-file-pdf"></i> Informe complet (PDF)</button>
-        </div>
+        <h4>Rutes existents</h4>
+        <div class="table-wrapper"><table id="taulaReforc"><thead><tr><th>Nom</th><th>Fracció</th><th>Carrers</th><th>Accions</th></tr></thead><tbody></tbody></table></div>
       </div>
     </div>
   </div>
@@ -572,367 +501,257 @@
   const SUPABASE_URL = 'https://pcvwtcvzshwfyzsiudoy.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBjdnd0Y3Z6c2h3Znl6c2l1ZG95Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5OTgwOTAsImV4cCI6MjA5MzU3NDA5MH0.JOV-8eC7StFs4mUiHkQ4I90d3CJruYvSicJDAswzemE';
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  const FRACCIONS = ["Orgànica","Resta","Envasos","Paper","Vidre"];
-  const POBLES_INICIALS = ["Sallent","Balsareny","Pont de Vilomara","Mura","Talamanca","Aguilar de Segarra","Rajadell","Fonollosa","Castellnou de Bages","Monistrol de Montserrat","Castellgalí","Callús","Sant Mateu de Bages"].sort();
-  let pobles = [], poblesAdmin = [];
-  let currentUser = null, currentUserRole = null, currentUserDisplayName = '';
-  let contenidors = [], usuaris = [], rutesReforç = [];
+  
+  let currentUser = null, currentUserId = null, currentUserRole = null, currentUserDisplayName = '';
+  let contenidors = [];
+  let rutesReforç = [];
+  let usuaris = [];
+  let assignacions = [];
   let paginaActual = 1;
-  const itemsPerPagina = 10;
+  const itemsPerPagina = 15;
+  let map = null;
+  let markers = [];
   
-  // ===================== NOTIFICACIONES PUSH =====================
-  let notificationPermission = false;
-  let notificationInterval = null;
-  
-  // Mostrar notificación flotante en la UI
-  function showUINotification(title, body, icon = '🚛') {
-    const container = document.getElementById('notificationContainer');
-    const notif = document.createElement('div');
-    notif.style.cssText = `
-      background: white; border-radius: 12px; padding: 12px 16px; margin-bottom: 10px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-left: 4px solid var(--primary);
-      animation: slideIn 0.3s ease; display: flex; align-items: center; gap: 12px;
-    `;
-    notif.innerHTML = `
-      <div style="font-size: 1.8rem;">${icon}</div>
-      <div style="flex:1;">
-        <div style="font-weight: bold; margin-bottom: 4px;">${title}</div>
-        <div style="font-size: 0.85rem; color: var(--gray-600);">${body}</div>
-      </div>
-      <button onclick="this.parentElement.remove()" style="background:none; border:none; cursor:pointer;">✖</button>
-    `;
-    container.appendChild(notif);
-    setTimeout(() => notif.remove(), 8000);
+  // ===================== FUNCIONS =====================
+  function showToast(msg) {
+    const t = document.createElement('div'); t.className = 'toast'; t.innerText = msg;
+    document.body.appendChild(t); setTimeout(() => t.remove(), 3000);
   }
   
-  // Enviar notificación push nativa
-  async function sendPushNotification(title, body, tag = null) {
-    if (!notificationPermission) return;
+  // ===================== NOTIFICACIONS =====================
+  async function crearNotificacio(usuariId, titol, missatge, tipus = 'info') {
+    if (!usuariId) return;
+    await sb.from('notificacions').insert([{ usuari_id: usuariId, titol, missatge, tipus, llegida: false, creada: new Date().toISOString() }]);
+  }
+  
+  async function enviarNotificacioMultiple(destinataris, titol, missatge, tipus = 'info') {
+    if (destinataris.length === 0) return;
+    const notificacions = destinataris.map(usuariId => ({ usuari_id: usuariId, titol, missatge, tipus, llegida: false, creada: new Date().toISOString() }));
+    await sb.from('notificacions').insert(notificacions);
+    showToast(`✅ Notificació enviada a ${destinataris.length} usuaris`);
+  }
+  
+  async function carregarNotificacions() {
+    if (!currentUserId) return;
+    const { data } = await sb.from('notificacions').select('*').eq('usuari_id', currentUserId).order('creada', { ascending: false });
+    if (data) {
+      renderNotificacions(data);
+      const noLlegides = data.filter(n => !n.llegida).length;
+      const badge = document.getElementById('notifCount');
+      if (noLlegides > 0) { badge.style.display = 'inline-block'; badge.innerText = noLlegides > 9 ? '9+' : noLlegides; }
+      else badge.style.display = 'none';
+    }
+  }
+  
+  function renderNotificacions(notificacions) {
+    const tbody = document.querySelector('#taulaNotificacions tbody');
+    if (tbody) {
+      tbody.innerHTML = notificacions.map(n => `<tr> class="${n.llegida ? '' : 'notificacio-no-llegida'}">
+        <td>${new Date(n.creada).toLocaleString('ca-ES')}</td>
+        <td>${n.tipus.toUpperCase()}</td><td><strong>${n.titol}</strong><br><small>${n.missatge}</small></td>
+        <td>${n.llegida ? '✅ Llegida' : '📖 No llegida'}</td><td>${!n.llegida ? `<button class="btn-sm btn-info" onclick="marcarLlegida('${n.id}')">Marcar</button>` : ''}
+          <button class="btn-sm btn-danger" onclick="eliminarNotificacio('${n.id}')">Eliminar</button>
+        </td></tr>`).join('') || '<tr><td colspan="5">No tens notificacions</td></tr>';
+    }
+    const modalList = document.getElementById('llistaNotificacionsModal');
+    if (modalList) {
+      modalList.innerHTML = notificacions.slice(0, 20).map(n => `<div style="padding:12px; border-bottom:1px solid #ddd; ${!n.llegida ? 'background:#fff3cd;' : ''}">
+        <small>${new Date(n.creada).toLocaleString()}</small><br><strong>${n.titol}</strong><br>${n.missatge}<br>
+        ${!n.llegida ? `<button class="btn-sm btn-info" style="margin-top:8px;" onclick="marcarLlegida('${n.id}')">Marcar llegida</button>` : ''}
+      </div>`).join('') || '<p>No tens notificacions</p>';
+    }
+  }
+  
+  window.marcarLlegida = async function(id) {
+    await sb.from('notificacions').update({ llegida: true }).eq('id', id);
+    await carregarNotificacions();
+  };
+  window.eliminarNotificacio = async function(id) {
+    await sb.from('notificacions').delete().eq('id', id);
+    await carregarNotificacions();
+  };
+  async function marcarTotesLlegides() {
+    await sb.from('notificacions').update({ llegida: true }).eq('usuari_id', currentUserId);
+    await carregarNotificacions();
+  }
+  function openNotificationsModal() { document.getElementById('notificationsModal').style.display = 'flex'; carregarNotificacions(); }
+  function closeNotificationsModal() { document.getElementById('notificationsModal').style.display = 'none'; }
+  
+  // ===================== ORDENACIÓ =====================
+  function ordenarContenidors(array) {
+    return [...array].sort((a, b) => {
+      if (a.poble !== b.poble) return a.poble.localeCompare(b.poble);
+      if (a.carrer !== b.carrer) return a.carrer.localeCompare(b.carrer);
+      const numA = parseInt(a.num_tancament) || 0;
+      const numB = parseInt(b.num_tancament) || 0;
+      return numA - numB;
+    });
+  }
+  
+  function obtenirConductorAssignat(poble, tipus) {
+    const assignacio = assignacions.find(a => a.poble === poble && a.fraccio === tipus);
+    if (assignacio) {
+      const usuari = usuaris.find(u => u.id === assignacio.conductor_id);
+      return usuari ? (usuari.display_name || usuari.nom.split('@')[0]) : 'No assignat';
+    }
+    return 'No assignat';
+  }
+  
+  function renderTaulaRutesAgrupada(filtrats, pagina) {
+    const ordenats = ordenarContenidors(filtrats);
+    const grouped = {};
+    ordenats.forEach(c => { if (!grouped[c.poble]) grouped[c.poble] = []; grouped[c.poble].push(c); });
     
-    const options = {
-      body: body,
-      icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🚛</text></svg>',
-      badge: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🚛</text></svg>',
-      vibrate: [200, 100, 200],
-      silent: false,
-      requireInteraction: tag === 'urgent'
-    };
-    if (tag) options.tag = tag;
+    const flatList = [];
+    Object.keys(grouped).sort().forEach(poble => {
+      flatList.push({ type: 'header', poble, count: grouped[poble].length });
+      grouped[poble].forEach(c => flatList.push({ type: 'row', data: c }));
+    });
     
-    try {
-      const registration = await navigator.serviceWorker?.ready;
-      if (registration) {
-        await registration.showNotification(title, options);
+    const total = Math.ceil(flatList.length / itemsPerPagina);
+    const inici = (pagina - 1) * itemsPerPagina;
+    const items = flatList.slice(inici, inici + itemsPerPagina);
+    
+    let html = '';
+    for (const item of items) {
+      if (item.type === 'header') {
+        html += `<tr class="pueblo-group"><td colspan="7" style="background:#eef2ff; font-weight:bold;"><i class="fas fa-city"></i> ${item.poble} <span style="font-size:0.75rem;">(${item.count} contenidors)</span></td></tr>`;
       } else {
-        new Notification(title, options);
+        const c = item.data;
+        const conductor = obtenirConductorAssignat(c.poble, c.tipus);
+        html += `<tr>
+          <td style="padding-left:30px;">${c.poble}</td>
+          <td>${c.carrer}</td>
+          <td>${c.num_tancament || ''}</td>
+          <td><span class="tipus-badge tipus-${c.tipus.toLowerCase().replace('à', 'a')}">${c.tipus}</span></td>
+          <td><button class="btn-sm ${c.estat_general === 'Fet' ? 'btn-success' : 'btn-secondary'}" onclick="canviarEstat(${c.id},'${c.estat_general === 'Fet' ? 'No fet' : 'Fet'}')">${c.estat_general === 'Fet' ? '✅ Fet' : '⭕ No fet'}</button></td>
+          <td><i class="fas fa-user"></i> ${conductor}</td>
+          <td>${c.lat ? `<button class="btn-sm btn-secondary" onclick="obrirGoogleMaps(${c.lat},${c.lng})"><i class="fas fa-map-marker-alt"></i></button>` : '—'}</td>
+        </tr>`;
       }
-      showUINotification(title, body);
-    } catch (err) {
-      console.error('Error sending notification:', err);
-      showUINotification(title, body);
     }
+    document.querySelector('#taulaRutes tbody').innerHTML = html || '<tr><td colspan="7">Sense dades</td></tr>';
+    document.getElementById('infoPagina').innerText = `Pàgina ${pagina} de ${total || 1}`;
+    document.getElementById('btnPagAnt').disabled = pagina <= 1;
+    document.getElementById('btnPagSeg').disabled = pagina >= total;
+    return total;
   }
   
-  // Solicitar permiso para notificaciones
-  async function requestNotificationPermission() {
-    if (!('Notification' in window)) {
-      showToast('❌ El teu navegador no suporta notificacions');
-      return false;
-    }
+  function renderResumPerPoble() {
+    const search = document.getElementById('resumSearch')?.value.toLowerCase() || '';
+    const poblesUnics = [...new Set(contenidors.map(c => c.poble))].sort();
+    const fraccions = ['Orgànica', 'Resta', 'Envasos', 'Paper', 'Vidre'];
     
-    const permission = await Notification.requestPermission();
-    notificationPermission = permission === 'granted';
-    
-    const statusSpan = document.getElementById('notifStatus');
-    if (notificationPermission) {
-      statusSpan.innerHTML = '<i class="fas fa-bell"></i> Notificacions activades';
-      document.getElementById('btnActivarNotificacions').style.background = '#4caf50';
-      showToast('✅ Notificacions activades correctament');
+    let html = '';
+    for (const poble of poblesUnics) {
+      if (search && !poble.toLowerCase().includes(search)) continue;
       
-      // Registrar service worker si es posible
-      if ('serviceWorker' in navigator) {
-        try {
-          const registration = await navigator.serviceWorker.register('/sw.js');
-          console.log('Service Worker registered');
-        } catch (err) {
-          console.log('Service Worker not supported');
-        }
-      }
-    } else {
-      statusSpan.innerHTML = '<i class="fas fa-bell-slash"></i> Activar notificacions';
-      showToast('⚠️ Permís de notificacions denegat');
-    }
-    return notificationPermission;
-  }
-  
-  // Verificar rutas pendientes y enviar notificación
-  async function verificarRutasPendientes() {
-    if (!notificationPermission) return;
-    
-    const notifRutesPendents = document.getElementById('notifRutesPendents')?.checked;
-    if (!notifRutesPendents) return;
-    
-    const pendientes = contenidors.filter(c => c.estat_general === 'No fet');
-    if (pendientes.length === 0) return;
-    
-    // Notificar solo si hay muchas pendientes o es hora específica
-    const lastNotified = localStorage.getItem('last_pending_notification');
-    const now = new Date();
-    const hour = now.getHours();
-    
-    // Notificar a las 8:00, 12:00 y si hay más de 20 pendientes
-    const shouldNotify = !lastNotified || 
-                        (now - new Date(lastNotified) > 2 * 60 * 60 * 1000) ||
-                        (pendientes.length > 20 && (!lastNotified || now - new Date(lastNotified) > 30 * 60 * 1000));
-    
-    if (shouldNotify && (hour === 8 || hour === 12 || pendientes.length > 20)) {
-      const pueblos = [...new Set(pendientes.map(c => c.poble))];
-      await sendPushNotification(
-        '📊 Resum de rutes pendents',
-        `Tens ${pendientes.length} contenidors pendents en ${pueblos.length} pobles. Revisa la planificació!`,
-        'pending_routes'
-      );
-      localStorage.setItem('last_pending_notification', now.toISOString());
-    }
-  }
-  
-  // Enviar recordatorio de ruta específica
-  async function enviarRecordatorioRuta() {
-    const pendientes = contenidors.filter(c => c.estat_general === 'No fet');
-    if (pendientes.length === 0) {
-      showToast('✅ No hi ha rutes pendents!');
-      await sendPushNotification('✅ Bones notícies!', 'Totes les rutes estan completades. Bon treball!', 'good_work');
-      return;
-    }
-    
-    const porPueblo = {};
-    pendientes.forEach(c => {
-      if (!porPueblo[c.poble]) porPueblo[c.poble] = [];
-      porPueblo[c.poble].push(c);
-    });
-    
-    const puebloConMas = Object.entries(porPueblo).sort((a,b) => b[1].length - a[1].length)[0];
-    await sendPushNotification(
-      '⚠️ Recordatori de rutes pendents',
-      `${puebloConMas[0]} té ${puebloConMas[1].length} contenidors pendents. Prioritza aquesta ruta!`,
-      'reminder'
-    );
-  }
-  
-  // Iniciar monitorización periódica de notificaciones
-  function iniciarMonitorizacionNotificaciones() {
-    if (notificationInterval) clearInterval(notificationInterval);
-    
-    // Verificar cada hora
-    notificationInterval = setInterval(async () => {
-      const notifRecordatoris = document.getElementById('notifRecordatoris')?.checked;
-      if (notifRecordatoris) {
-        await verificarRutasPendientes();
-      }
-    }, 60 * 60 * 1000);
-    
-    // Verificar también al cargar la app
-    setTimeout(verificarRutasPendientes, 5000);
-  }
-  
-  // ===================== OFFLINE / SYNC =====================
-  let isOnline = navigator.onLine;
-  let pendingActions = [];
-  let db = null;
-  
-  async function initIndexedDB() {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open('LOGO_Rutes_Offline', 2);
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => {
-        db = request.result;
-        resolve(db);
-      };
-      request.onupgradeneeded = (event) => {
-        const db = event.target.result;
-        if (!db.objectStoreNames.contains('contenidors')) {
-          db.createObjectStore('contenidors', { keyPath: 'id' });
-        }
-        if (!db.objectStoreNames.contains('pending_actions')) {
-          const store = db.createObjectStore('pending_actions', { autoIncrement: true });
-          store.createIndex('timestamp', 'timestamp');
-        }
-        if (!db.objectStoreNames.contains('rutes_reforc')) {
-          db.createObjectStore('rutes_reforc', { keyPath: 'id' });
-        }
-      };
-    });
-  }
-  
-  async function saveToIndexedDB(store, data) {
-    if (!db) await initIndexedDB();
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction([store], 'readwrite');
-      const objectStore = transaction.objectStore(store);
-      if (Array.isArray(data)) {
-        data.forEach(item => objectStore.put(item));
-      } else {
-        objectStore.put(data);
-      }
-      transaction.oncomplete = () => resolve();
-      transaction.onerror = () => reject(transaction.error);
-    });
-  }
-  
-  async function loadFromIndexedDB(store) {
-    if (!db) await initIndexedDB();
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction([store], 'readonly');
-      const objectStore = transaction.objectStore(store);
-      const request = objectStore.getAll();
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-  }
-  
-  async function addPendingAction(action, data) {
-    const pendingAction = {
-      id: Date.now() + '_' + Math.random(),
-      timestamp: new Date().toISOString(),
-      action: action,
-      data: data,
-      user: currentUser
-    };
-    pendingActions.push(pendingAction);
-    await saveToIndexedDB('pending_actions', pendingAction);
-    updatePendingSyncUI();
-    
-    const notifSync = document.getElementById('notifSync')?.checked;
-    if (notifSync && !isOnline) {
-      await sendPushNotification('📱 Mode offline', `Acció "${action}" guardada localment. Es sincronitzarà quan tornis a connectar.`, 'offline_action');
-    }
-  }
-  
-  async function syncPendingActions() {
-    if (!isOnline) {
-      showToast('⚠️ No tens connexió a internet');
-      return;
-    }
-    if (pendingActions.length === 0) return;
-    
-    showToast(`🔄 Sincronitzant ${pendingActions.length} accions...`);
-    let successCount = 0;
-    
-    for (const action of [...pendingActions]) {
-      try {
-        switch (action.action) {
-          case 'update_estat':
-            await sb.from('contenidors').update({ estat_general: action.data.estat }).eq('id', action.data.id);
-            successCount++;
-            break;
-          case 'insert_contenidor':
-            await sb.from('contenidors').insert([action.data]);
-            successCount++;
-            break;
-          case 'delete_contenidor':
-            await sb.from('contenidors').delete().eq('id', action.data.id);
-            successCount++;
-            break;
-        }
-        
-        const transaction = db.transaction(['pending_actions'], 'readwrite');
-        const store = transaction.objectStore('pending_actions');
-        store.delete(action.id);
-        pendingActions = pendingActions.filter(a => a.id !== action.id);
-        
-      } catch (err) {
-        console.error('Error syncing:', err);
-      }
-    }
-    
-    await carregarContenidors();
-    showToast(`✅ Sincronitzats ${successCount} accions`);
-    updatePendingSyncUI();
-    
-    if (successCount > 0) {
-      const notifSync = document.getElementById('notifSync')?.checked;
-      if (notifSync) {
-        await sendPushNotification('🔄 Sincronització completada', `${successCount} accions sincronitzades correctament.`, 'sync_complete');
-      }
-    }
-  }
-  
-  function updatePendingSyncUI() {
-    const alertDiv = document.getElementById('pendingSyncAlert');
-    const countSpan = document.getElementById('pendingCount');
-    if (pendingActions.length > 0) {
-      alertDiv.style.display = 'block';
-      countSpan.innerText = pendingActions.length;
-    } else {
-      alertDiv.style.display = 'none';
-    }
-  }
-  
-  // ===================== BACKUP =====================
-  function exportarBackupCompleto() {
-    const backup = {
-      fecha: new Date().toISOString(),
-      version: "2.0",
-      contenidors: contenidors,
-      rutesReforç: rutesReforç,
-      comentaris: getComentaris(),
-      poblesAdmin: poblesAdmin,
-      usuaris: usuaris,
-    };
-    
-    const blob = new Blob([JSON.stringify(backup, null, 2)], {type: "application/json"});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `backup_logo_rutes_${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast('✅ Backup complet exportat');
-    
-    const backups = JSON.parse(localStorage.getItem('backup_history') || '[]');
-    backups.unshift({ fecha: new Date().toISOString(), nombre: a.download });
-    if (backups.length > 10) backups.pop();
-    localStorage.setItem('backup_history', JSON.stringify(backups));
-    mostrarListaBackups();
-  }
-  
-  async function importarBackup(file) {
-    try {
-      const text = await file.text();
-      const backup = JSON.parse(text);
-      if (!backup.contenidors || !backup.rutesReforç) throw new Error('Backup invàlid');
-      if (!confirm(`Això sobreescriurà totes les dades. Continuar?`)) return;
+      const contenidorsPoble = contenidors.filter(c => c.poble === poble);
+      const total = contenidorsPoble.length;
+      const fets = contenidorsPoble.filter(c => c.estat_general === 'Fet').length;
+      const percentatge = total > 0 ? Math.round((fets / total) * 100) : 0;
       
-      if (isOnline) {
-        await sb.from('contenidors').delete().neq('id', 0);
-        await sb.from('contenidors').insert(backup.contenidors);
-      } else {
-        await saveToIndexedDB('contenidors', backup.contenidors);
-      }
-      
-      localStorage.setItem('rutes_reforc', JSON.stringify(backup.rutesReforç));
-      localStorage.setItem('comentaris_per_poble', JSON.stringify(backup.comentaris || {}));
-      localStorage.setItem('pobles_admin', JSON.stringify(backup.poblesAdmin || []));
-      
-      showToast('✅ Backup restaurat correctament');
-      setTimeout(() => location.reload(), 1500);
-    } catch (err) {
-      showToast('❌ Error: ' + err.message);
-    }
-  }
-  
-  function mostrarListaBackups() {
-    const backups = JSON.parse(localStorage.getItem('backup_history') || '[]');
-    const container = document.getElementById('llistaBackupsLocals');
-    if (container) {
-      container.innerHTML = backups.map(b => `
-        <div class="backup-item">
-          <div><i class="fas fa-archive"></i> ${new Date(b.fecha).toLocaleString()}</div>
-          <div>${b.nombre}</div>
+      html += `<div class="resum-poble-card">
+        <div class="resum-poble-titol">
+          <i class="fas fa-city"></i> ${poble} 
+          <span style="font-size:0.8rem;">(${fets}/${total} fets - ${percentatge}%)</span>
+          <div style="float:right; width:100px;">
+            <div style="background:#e2e8f0; border-radius:10px; height:8px;">
+              <div style="background:${percentatge === 100 ? 'var(--success)' : 'var(--secondary)'}; width:${percentatge}%; height:8px; border-radius:10px;"></div>
+            </div>
+          </div>
         </div>
-      `).join('') || '<p>No hi ha backups previs</p>';
+        <table style="width:100%; font-size:0.8rem;">
+          <thead><tr style="background:var(--gray-200);"><th>Fracció</th><th>Total</th><th>Fets</th><th>Pendents</th><th>Conductor</th><th>%</th></tr></thead>
+          <tbody>`;
+      
+      for (const fraccio of fraccions) {
+        const items = contenidorsPoble.filter(c => c.tipus === fraccio);
+        const totalFraccio = items.length;
+        if (totalFraccio === 0) continue;
+        const fetsFraccio = items.filter(c => c.estat_general === 'Fet').length;
+        const pendentsFraccio = totalFraccio - fetsFraccio;
+        const percentFraccio = Math.round((fetsFraccio / totalFraccio) * 100);
+        const conductor = obtenirConductorAssignat(poble, fraccio);
+        
+        html += `<tr>
+          <td><span class="tipus-badge tipus-${fraccio.toLowerCase().replace('à', 'a')}" style="font-size:0.7rem;">${fraccio}</span></td>
+          <td>${totalFraccio}</td>
+          <td style="color:var(--success);">${fetsFraccio}</td>
+          <td style="color:${pendentsFraccio > 0 ? 'var(--secondary)' : 'var(--success)'};">${pendentsFraccio}</td>
+          <td><i class="fas fa-user"></i> ${conductor}</td>
+          <td>${percentFraccio}%</td>
+        </tr>`;
+      }
+      html += `</tbody></table></div>`;
+    }
+    document.getElementById('resumPoblesContainer').innerHTML = html || '<p>No hi ha dades</p>';
+  }
+  
+  function actualitzarDashboard() {
+    document.getElementById('totalContenidors').innerText = contenidors.length;
+    const fets = contenidors.filter(c => c.estat_general === 'Fet').length;
+    const pendents = contenidors.length - fets;
+    document.getElementById('totalFets').innerText = fets;
+    document.getElementById('totalPendents').innerText = pendents;
+    document.getElementById('totalUsuaris').innerText = usuaris.filter(u => u.role !== 'admin').length;
+    
+    const perPoble = {};
+    contenidors.forEach(c => {
+      if (!perPoble[c.poble]) perPoble[c.poble] = { total: 0, fets: 0 };
+      perPoble[c.poble].total++;
+      if (c.estat_general === 'Fet') perPoble[c.poble].fets++;
+    });
+    const tbody = document.querySelector('#taulaDashboardResum tbody');
+    if (tbody) {
+      tbody.innerHTML = Object.entries(perPoble).map(([poble, d]) => {
+        const percent = Math.round((d.fets / d.total) * 100);
+        return `<tr><td>${poble}</td><td>${d.total}</td><td>${d.fets}</td><td>${d.total - d.fets}</td>
+          <td><div style="background:#e2e8f0; border-radius:10px; width:80px; height:8px;"><div style="background:${percent === 100 ? 'var(--success)' : 'var(--info)'}; width:${percent}%; height:8px; border-radius:10px;"></div></div> ${percent}%</td></tr>`;
+      }).join('') || '<tr><td colspan="5">Cap dada</td></tr>';
     }
   }
+  
+  // ===== MAPA =====
+  function inicialitzarMapa() {
+    if (map) map.remove();
+    map = L.map('mapaRutes').setView([41.7, 1.8], 10);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
+      subdomains: 'abcd',
+      maxZoom: 19
+    }).addTo(map);
+  }
+  
+  function actualitzarMapa() {
+    if (!map) inicialitzarMapa();
+    const poble = document.getElementById('mapaPobleSelect').value;
+    const fraccio = document.getElementById('mapaFraccioSelect').value;
+    
+    markers.forEach(m => map.removeLayer(m));
+    markers = [];
+    
+    let filtrats = contenidors.filter(c => c.lat && c.lng);
+    if (poble) filtrats = filtrats.filter(c => c.poble === poble);
+    if (fraccio) filtrats = filtrats.filter(c => c.tipus === fraccio);
+    
+    filtrats.forEach(c => {
+      const marker = L.marker([c.lat, c.lng]).addTo(map);
+      marker.bindPopup(`<b>${c.carrer} ${c.num_tancament || ''}</b><br>${c.poble}<br>${c.tipus}<br>Estat: ${c.estat_general}<br><button onclick="canviarEstat(${c.id},'${c.estat_general === 'Fet' ? 'No fet' : 'Fet'}')" class="btn-sm btn-secondary">Marcar</button>`);
+      markers.push(marker);
+    });
+    if (filtrats.length) map.fitBounds(L.latLngBounds(filtrats.map(c => [c.lat, c.lng])));
+  }
+  
+  function anarMevaUbicacio() {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(pos => {
+      map.setView([pos.coords.latitude, pos.coords.longitude], 15);
+      L.marker([pos.coords.latitude, pos.coords.longitude]).addTo(map).bindPopup('La teva ubicació').openPopup();
+    });
+  }
+  
+  window.obrirGoogleMaps = (lat, lng) => window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank');
   
   // ===================== AUTENTICACIÓ =====================
   async function login() {
@@ -940,933 +759,82 @@
     const pass = document.getElementById('loginPass').value.trim();
     if (!email || !pass) { document.getElementById('loginError').innerText = 'Omple tots els camps'; return; }
     
-    if (!navigator.onLine) {
-      const offlineUsers = JSON.parse(localStorage.getItem('offline_users') || '[]');
-      const user = offlineUsers.find(u => u.email === email && u.password === pass);
-      if (user) {
-        currentUser = email;
-        currentUserRole = user.role;
-        currentUserDisplayName = user.displayName;
-        tancarLogin();
-        await loadAllOfflineData();
-        return;
-      } else {
-        document.getElementById('loginError').innerText = 'Usuari no trobat en mode offline';
+    try {
+      let { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+      if (error) {
+        const { data: signUpData } = await sb.auth.signUp({ email, password: pass });
+        await sb.from('usuaris_personalitzats').insert([{ user_id: signUpData.user.id, nom: email, role: 'admin', display_name: 'Administrador' }]);
+        showToast('✅ Admin creat! Inicia sessió.');
         return;
       }
+      
+      currentUserId = data.user.id;
+      currentUser = data.user.email;
+      
+      const { data: perfil } = await sb.from('usuaris_personalitzats').select('role,display_name').eq('user_id', currentUserId).single();
+      
+      if (perfil?.role !== 'admin') {
+        document.getElementById('loginError').innerText = 'Accés denegat. Només administradors.';
+        await sb.auth.signOut();
+        return;
+      }
+      
+      currentUserRole = perfil?.role;
+      currentUserDisplayName = perfil?.display_name || 'Administrador';
+      await sb.from('usuaris_personalitzats').update({ ultima_connexio: new Date().toISOString() }).eq('user_id', currentUserId);
+      tancarLogin();
+    } catch (err) {
+      document.getElementById('loginError').innerText = err.message;
     }
-    
-    const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
-    if (error) { document.getElementById('loginError').innerText = error.message; return; }
-    
-    currentUser = data.user.email;
-    const { data: perfil } = await sb.from('usuaris_personalitzats').select('role,display_name').eq('user_id', data.user.id).single();
-    currentUserRole = perfil?.role || 'operari';
-    currentUserDisplayName = perfil?.display_name || currentUser;
-    if (currentUser === 'provama@provama.com' && currentUserRole !== 'admin') {
-      currentUserRole = 'admin';
-      if (perfil) await sb.from('usuaris_personalitzats').update({ role: 'admin' }).eq('user_id', data.user.id);
-      else await sb.from('usuaris_personalitzats').insert([{ user_id: data.user.id, nom: email, role: 'admin' }]);
-    }
-    tancarLogin();
   }
   
-  async function logout() { 
-    await sb.auth.signOut(); 
-    location.reload(); 
+  async function logout() {
+    await sb.auth.signOut();
+    location.reload();
   }
   
   function tancarLogin() {
     document.getElementById('loginOverlay').style.display = 'none';
     document.getElementById('mainMenu').style.display = 'block';
-    document.getElementById('currentUserMenu').innerText = currentUserDisplayName;
-    document.getElementById('userRoleMenu').innerText = currentUserRole === 'admin' ? 'Admin' : 'Operari';
-    document.getElementById('tabGestioBtn').style.display = currentUserRole === 'admin' ? 'inline-flex' : 'none';
-    document.getElementById('displayConductor').innerText = currentUserDisplayName;
-    document.getElementById('driverDateHint').innerText = new Date().toLocaleDateString('ca-ES');
-    comprovarConnexioSupabase();
+    document.getElementById('currentUserMenu').innerHTML = `<i class="fas fa-crown"></i> ${currentUserDisplayName} (Admin)`;
     inicialitzarApp();
   }
   
-  document.getElementById('btnLogin').addEventListener('click', login);
-  
-  // Eventos de notificaciones
-  document.getElementById('btnActivarNotificacions')?.addEventListener('click', requestNotificationPermission);
-  document.getElementById('btnProvaNotificacio')?.addEventListener('click', async () => {
-    await sendPushNotification('🔔 Prova de notificació', 'Aquesta és una notificació de prova del sistema LOGO Rutes', 'test');
-  });
-  document.getElementById('btnEnviarRecordatori')?.addEventListener('click', enviarRecordatorioRuta);
-  
-  // ===================== FUNCIONS PRINCIPALS =====================
-  function getComentaris() { return JSON.parse(localStorage.getItem('comentaris_per_poble') || '{}'); }
-  function saveComentaris(obj) { localStorage.setItem('comentaris_per_poble', JSON.stringify(obj)); }
-  function showToast(msg) {
-    const t = document.createElement('div'); t.className = 'toast'; t.innerText = msg;
-    document.body.appendChild(t); setTimeout(() => t.remove(), 3000);
-  }
-  
-  async function comprovarConnexioSupabase() {
-    const indicator = document.getElementById('supabaseIndicator');
-    try {
-      const { error } = await sb.from('contenidors').select('id', { count: 'exact', head: true });
-      if (error) throw error;
-      indicator.style.backgroundColor = '#10b981';
-    } catch (err) {
-      indicator.style.backgroundColor = '#e74c3c';
-    }
-  }
-  
-  // ===================== GESTIÓ DADES =====================
-  function carregarPobles() {
-    poblesAdmin = JSON.parse(localStorage.getItem('pobles_admin') || '[]');
-    pobles = [...new Set([...POBLES_INICIALS, ...poblesAdmin])].sort();
-  }
-  
-  function omplirSelectsPobles() {
-    ['rutesPobleSelect','comentariPobleSelect','gestPoble','filtrePobleSelect'].forEach(id => {
-      const el = document.getElementById(id);
-      if (!el) return;
-      let defaultOption = '<option value="">Tots els pobles</option>';
-      if (id === 'comentariPobleSelect') defaultOption = '<option value="">Selecciona</option>';
-      else if (id === 'gestPoble') defaultOption = '<option value="">Poble</option>';
-      el.innerHTML = defaultOption + pobles.map(p => `<option>${p}</option>`).join('');
-    });
-    const rutaPoble = document.getElementById('rutaPobleSelect');
-    if (rutaPoble) rutaPoble.innerHTML = '<option value="">Selecciona un poble</option>' + pobles.map(p => `<option>${p}</option>`).join('');
-  }
-  
-  function renderPoblesConfig() {
-    const tbody = document.querySelector('#taulaPobles tbody');
-    if (!tbody) return;
-    tbody.innerHTML = pobles.map(p => {
-      const esPredeterminat = POBLES_INICIALS.includes(p) || poblesAdmin.includes(p);
-      return `<tr>
-        <td>${p} ${esPredeterminat ? '<small>(predet.)</small>' : ''}</td>
-        <td>${!esPredeterminat ? `<button class="btn-sm btn-danger" onclick="eliminarPoble('${p}')"><i class="fas fa-trash"></i></button>` : '🔒'}</td>
-      </tr>`;
-    }).join('');
-  }
-  
-  window.eliminarPoble = function(p) {
-    if (!confirm("Eliminar?")) return;
-    if (POBLES_INICIALS.includes(p) || poblesAdmin.includes(p)) {
-      showToast('No es poden eliminar pobles predeterminats');
-      return;
-    }
-    pobles = pobles.filter(x => x !== p);
-    omplirSelectsPobles();
-    renderPoblesConfig();
-    renderCheckboxesPobles();
-  };
-  
+  // ===================== CRUD =====================
   async function carregarContenidors() {
     try {
-      if (isOnline) {
-        const { data, error } = await sb.from('contenidors').select('*').order('id');
-        if (error) throw error;
-        contenidors = data || [];
-        await saveToIndexedDB('contenidors', contenidors);
-      } else {
-        const offlineData = await loadFromIndexedDB('contenidors');
-        if (offlineData && offlineData.length > 0) contenidors = offlineData;
-      }
-      actualitzarLlistatPaginat();
-      omplirTaulaGestioAmbDades(contenidors);
+      const { data, error } = await sb.from('contenidors').select('*').order('id');
+      if (error) throw error;
+      contenidors = data || [];
+      actualitzarLlistat();
+      omplirTaulaGestio();
       actualitzarCheckboxesCarrers();
-      actualitzarLlistaPendents();
-    } catch (err) {
-      showToast(`Error: ${err.message}`);
-    }
+      actualitzarMapa();
+      renderResumPerPoble();
+      actualitzarDashboard();
+    } catch (err) { showToast(`Error: ${err.message}`); }
   }
   
-  window.canviarEstat = async (id, nou) => {
-    if (isOnline) {
-      await sb.from('contenidors').update({ estat_general: nou }).eq('id', id);
-      await carregarContenidors();
-    } else {
-      await addPendingAction('update_estat', { id: id, estat: nou });
-      const index = contenidors.findIndex(c => c.id === id);
-      if (index !== -1) contenidors[index].estat_general = nou;
-      await saveToIndexedDB('contenidors', contenidors);
-      actualitzarLlistatPaginat();
-      actualitzarLlistaPendents();
-    }
-  };
-  
-  function actualitzarLlistatPaginat() {
-    const poble = document.getElementById('rutesPobleSelect').value;
-    const fraccio = document.getElementById('rutesFraccioFiltre').value;
-    const search = document.getElementById('quickSearchRoutes')?.value.toLowerCase() || '';
-    let filtrats = contenidors;
-    if (poble) filtrats = filtrats.filter(c => c.poble === poble);
-    if (fraccio) filtrats = filtrats.filter(c => c.tipus === fraccio);
-    if (search) filtrats = filtrats.filter(c => c.carrer.toLowerCase().includes(search) || (c.num_tancament || '').toLowerCase().includes(search));
-    
-    const totalPagines = Math.ceil(filtrats.length / itemsPerPagina);
-    if (paginaActual > totalPagines) paginaActual = totalPagines || 1;
-    const inici = (paginaActual - 1) * itemsPerPagina;
-    const talls = filtrats.slice(inici, inici + itemsPerPagina);
-    
-    renderitzarTaulaRutes(talls);
-    document.getElementById('infoPagina').innerText = `Pàgina ${paginaActual} de ${totalPagines || 1}`;
-    document.getElementById('btnPagAnt').disabled = paginaActual <= 1;
-    document.getElementById('btnPagSeg').disabled = paginaActual >= totalPagines;
+  async function carregarUsuaris() {
+    const { data } = await sb.from('usuaris_personalitzats').select('*');
+    usuaris = data || [];
+    renderUsuaris();
+    omplirSelectConductors();
   }
   
-  function renderitzarTaulaRutes(filtrats) {
-    const tbody = document.querySelector('#taulaRutes tbody');
-    if (tbody) tbody.innerHTML = filtrats.map(c => `<tr>
-      <td>${c.num_tancament||''}</td>
-      <td><span class="tipus-badge tipus-${c.tipus.toLowerCase().replace('à','a')}">${c.tipus}</span></td>
-      <td>${c.poble}</td>
-      <td>${c.carrer}</td>
-      <td><button class="btn-sm ${c.estat_general==='Fet'?'btn-success':'btn-secondary'}" onclick="canviarEstat(${c.id},'${c.estat_general==='Fet'?'No fet':'Fet'}')">${c.estat_general==='Fet'?'✅ Fet':'⭕ No fet'}</button></td>
-      <td>${c.lat?`<button class="btn-sm btn-secondary" onclick="obrirStreetView(${c.lat},${c.lng})"><i class="fas fa-street-view"></i></button>`:'—'}</td>
-    </tr>`).join('') || '<tr><td colspan="6">Sense dades</td></tr>';
+  async function carregarAssignacions() {
+    const { data } = await sb.from('assignacions_conductor').select('*');
+    assignacions = data || [];
+    renderAssignacions();
+    actualitzarLlistat();
+    renderResumPerPoble();
   }
   
-  window.obrirStreetView = (lat, lng) => window.open(`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lng}`, '_blank');
-  window.obrirGoogleMaps = (lat, lng) => window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank');
-  
-  function omplirTaulaGestioAmbDades(dades) {
-    const tbody = document.querySelector('#taulaGestio tbody');
-    if (tbody) tbody.innerHTML = dades.map(c => `<tr>
-      <td>${c.carrer}</td><td>${c.num_tancament||''}</td>
-      <td><span class="tipus-badge tipus-${c.tipus.toLowerCase().replace('à','a')}">${c.tipus}</span></td>
-      <td>${c.poble}</td>
-      <td>${c.lat?c.lat.toFixed(4)+','+c.lng.toFixed(4):'—'}</td>
-      <td>
-        ${c.lat?`<button class="btn-sm btn-secondary" onclick="obrirStreetView(${c.lat},${c.lng})"><i class="fas fa-street-view"></i></button>`:''}
-        <button class="btn-sm btn-secondary" onclick="editarContenidor(${c.id})"><i class="fas fa-edit"></i></button>
-        <button class="btn-sm btn-danger" onclick="eliminarContenidor(${c.id})"><i class="fas fa-trash"></i></button>
-      </td>
-    </tr>`).join('') || '<tr><td colspan="6">Sense contenidors</td></tr>';
-  }
-  
-  function renderCheckboxesPobles() {
-    const container = document.getElementById('refPoblesCheckboxes');
-    if (container) container.innerHTML = pobles.map(p => `<label><input type="checkbox" value="${p}" class="cb-poble" onchange="actualitzarCheckboxesCarrers()"> ${p}</label>`).join('');
-  }
-  
-  window.actualitzarCheckboxesCarrers = function() {
-    const fraccio = document.getElementById('refFraccio').value;
-    const poblesSel = [...document.querySelectorAll('.cb-poble:checked')].map(cb => cb.value);
-    const container = document.getElementById('refCarrersCheckboxes');
-    if (!fraccio || !poblesSel.length) {
-      if (container) container.innerHTML = '<small>Selecciona fracció i pobles</small>';
-      document.getElementById('countCarrersSel').innerText = '0';
-      return;
-    }
-    const carrersUnics = new Map();
-    contenidors.forEach(c => {
-      if (c.tipus === fraccio && poblesSel.includes(c.poble)) {
-        const clau = `${c.poble}|${c.carrer}`;
-        if (!carrersUnics.has(clau)) carrersUnics.set(clau, { poble: c.poble, carrer: c.carrer, lat: c.lat, lng: c.lng });
-      }
-    });
-    if (carrersUnics.size === 0) {
-      container.innerHTML = '<small>No hi ha carrers</small>';
-      document.getElementById('countCarrersSel').innerText = '0';
-      return;
-    }
-    const ordenats = [...carrersUnics.values()].sort((a,b) => a.poble.localeCompare(b.poble) || a.carrer.localeCompare(b.carrer));
-    container.innerHTML = ordenats.map(c => `<label><input type="checkbox" class="cb-carrer" value='${JSON.stringify(c)}' onchange="actualitzarContadorCarrers()"> ${c.carrer} <small>(${c.poble})</small></label>`).join('');
-    document.getElementById('countCarrersSel').innerText = '0';
-  };
-  
-  window.actualitzarContadorCarrers = function() {
-    document.getElementById('countCarrersSel').innerText = document.querySelectorAll('.cb-carrer:checked').length;
-  };
-  
-  function carregarRutesReforç() {
-    const stored = localStorage.getItem('rutes_reforc');
-    rutesReforç = stored ? JSON.parse(stored) : [];
-    renderRutesReforç();
-    renderRutesReforçRutes();
-    const infoDiv = document.getElementById('infoReforçAdmin');
-    if (infoDiv) infoDiv.style.display = (currentUserRole === 'admin' && rutesReforç.length === 0) ? 'block' : 'none';
-  }
-  
-  function guardarRutesReforç() {
-    localStorage.setItem('rutes_reforc', JSON.stringify(rutesReforç));
-    saveToIndexedDB('rutes_reforc', rutesReforç);
-  }
-  
-  function renderRutesReforç() {
-    const tbody = document.querySelector('#taulaReforc tbody');
-    if (tbody) tbody.innerHTML = rutesReforç.map(r => `<tr>
-      <td>${r.nom}</td>
-      <td><span class="tipus-badge tipus-${r.fraccio.toLowerCase().replace('à','a')}">${r.fraccio}</span></td>
-      <td>${[...new Set(r.carrers.map(c => c.poble))].join(', ')}</td>
-      <td>${r.carrers.length}</td>
-      <td><button class="btn-sm btn-success" onclick="exportarReforçExcel('${r.id}')"><i class="fas fa-file-excel"></i></button></td>
-      <td><button class="btn-sm btn-warning" onclick="exportarReforçPDF('${r.id}')"><i class="fas fa-file-pdf"></i></button></td>
-      <td><button class="btn-sm btn-secondary" onclick="editarReforç('${r.id}')"><i class="fas fa-edit"></i></button>
-        <button class="btn-sm btn-danger" onclick="eliminarReforç('${r.id}')"><i class="fas fa-trash"></i></button>
-      </td>
-    </tr>`).join('') || '<tr><td colspan="7">Cap ruta</td></tr>';
-  }
-  
-  function renderRutesReforçRutes() {
-    const tbody = document.querySelector('#taulaReforcRutes tbody');
+  function renderUsuaris() {
+    const tbody = document.querySelector('#taulaUsuaris tbody');
     if (tbody) {
-      tbody.innerHTML = rutesReforç.map(r => `<tr class="fila-reforc" data-id="${r.id}" style="cursor:pointer;">
-        <td><strong>${r.nom}</strong></td>
-        <td><span class="tipus-badge tipus-${r.fraccio.toLowerCase().replace('à','a')}">${r.fraccio}</span></td>
-        <td>${[...new Set(r.carrers.map(c => c.poble))].join(', ')}</td>
-        <td>${r.carrers.length}</td>
-      </tr>`).join('') || '<tr><td colspan="4">Cap ruta</td></tr>';
-    }
-    document.querySelectorAll('.fila-reforc').forEach(fila => {
-      fila.addEventListener('click', function() {
-        const id = this.dataset.id;
-        const r = rutesReforç.find(x => x.id === id);
-        if (r) {
-          rutaReforçSeleccionada = r;
-          mostrarDetallReforç(r);
-        }
-      });
-    });
-  }
-  
-  function haversineDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371;
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) *
-              Math.sin(dLon/2) * Math.sin(dLon/2);
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)) * 1000;
-  }
-  
-  function calcularTemps(punts) {
-    if (!punts.length) return 0;
-    let dist = 0;
-    for (let i = 1; i < punts.length; i++) {
-      dist += haversineDistance(punts[i-1].lat, punts[i-1].lng, punts[i].lat, punts[i].lng);
-    }
-    return Math.round(dist / 500);
-  }
-  
-  function mostrarDetallReforç(r) {
-    const detallDiv = document.getElementById('detallReforçSeleccionat');
-    detallDiv.style.display = 'block';
-    const tbody = document.querySelector('#taulaDetallReforç tbody');
-    tbody.innerHTML = r.carrers.map(c => `<tr>
-      <td>${c.poble}</td>
-      <td>${c.carrer}</td>
-      <td>${c.lat ? `<button class="btn-sm btn-secondary" onclick="obrirStreetView(${c.lat},${c.lng})"><i class="fas fa-street-view"></i></button>
-         <button class="btn-sm btn-secondary" onclick="obrirGoogleMaps(${c.lat},${c.lng})"><i class="fas fa-map-marker-alt"></i></button>` : '—'}</td>
-    </tr>`).join('');
-    
-    const puntsAmbCoord = r.carrers.filter(c => c.lat && c.lng);
-    const temps = calcularTemps(puntsAmbCoord);
-    document.getElementById('tempsReforç').innerText = temps + ' min';
-    document.getElementById('numContenidorsReforç').innerText = r.carrers.length;
-    
-    const selectPoble = document.getElementById('refPobleInici');
-    const poblesUnics = [...new Set(r.carrers.map(c => c.poble))].sort();
-    selectPoble.innerHTML = poblesUnics.map(p => `<option value="${p}">${p}</option>`).join('');
-  }
-  
-  document.getElementById('btnReforçObrirMaps')?.addEventListener('click', () => {
-    if (!rutaReforçSeleccionada) return;
-    generarRutaReforç(rutaReforçSeleccionada, document.getElementById('refPobleInici').value, 'maps');
-  });
-  document.getElementById('btnReforçStreetView')?.addEventListener('click', () => {
-    if (!rutaReforçSeleccionada) return;
-    generarRutaReforç(rutaReforçSeleccionada, document.getElementById('refPobleInici').value, 'streetview');
-  });
-  
-  function generarRutaReforç(r, pobleInici, tipus) {
-    let punts = [...r.carrers].filter(c => c.lat && c.lng);
-    if (punts.length < 2) { showToast('Calen coordenades per generar la ruta'); return; }
-    let iniciIndex = punts.findIndex(c => c.poble === pobleInici);
-    if (iniciIndex === -1) iniciIndex = 0;
-    const inici = punts.splice(iniciIndex, 1)[0];
-    const ordenats = [inici];
-    while (punts.length) {
-      let idx = 0, minDist = Infinity;
-      const actual = ordenats[ordenats.length-1];
-      punts.forEach((p, i) => {
-        const d = haversineDistance(actual.lat, actual.lng, p.lat, p.lng);
-        if (d < minDist) { minDist = d; idx = i; }
-      });
-      ordenats.push(punts.splice(idx, 1)[0]);
-    }
-    if (tipus === 'maps') {
-      const origin = `${ordenats[0].lat},${ordenats[0].lng}`;
-      const dest = `${ordenats[ordenats.length-1].lat},${ordenats[ordenats.length-1].lng}`;
-      const waypts = ordenats.length > 2 ? `&waypoints=${ordenats.slice(1,-1).map(c => `${c.lat},${c.lng}`).join('|')}` : '';
-      window.open(`https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}${waypts}&travelmode=driving`, '_blank');
-    } else if (tipus === 'streetview') {
-      obrirStreetView(ordenats[0].lat, ordenats[0].lng);
-    }
-  }
-  
-  window.editarReforç = function(id) {
-    const r = rutesReforç.find(x => x.id === id);
-    if (!r) return;
-    document.getElementById('refNom').value = r.nom;
-    document.getElementById('refFraccio').value = r.fraccio;
-    document.getElementById('refEditId').value = r.id;
-    document.querySelectorAll('.cb-poble').forEach(cb => { cb.checked = r.carrers.some(c => c.poble === cb.value); });
-    actualitzarCheckboxesCarrers();
-    setTimeout(() => {
-      document.querySelectorAll('.cb-carrer').forEach(cb => {
-        const val = JSON.parse(cb.value);
-        cb.checked = r.carrers.some(c => c.poble === val.poble && c.carrer === val.carrer);
-      });
-      actualitzarContadorCarrers();
-    }, 50);
-    document.getElementById('btnCancelarReforç').style.display = 'inline-flex';
-    document.getElementById('btnGuardarReforç').innerHTML = '<i class="fas fa-save"></i> Actualitzar';
-  };
-  
-  window.eliminarReforç = function(id) {
-    if (!confirm('Eliminar?')) return;
-    rutesReforç = rutesReforç.filter(r => r.id !== id);
-    guardarRutesReforç();
-    renderRutesReforç();
-    renderRutesReforçRutes();
-  };
-  
-  window.exportarReforçExcel = function(id) {
-    const r = rutesReforç.find(x => x.id === id);
-    if (!r) return;
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet([['Poble','Carrer','Lat','Lng'], ...r.carrers.map(c => [c.poble, c.carrer, c.lat||'', c.lng||''])]);
-    XLSX.utils.book_append_sheet(wb, ws, r.nom.substring(0,31));
-    XLSX.writeFile(wb, `reforc_${r.nom}.xlsx`);
-  };
-  
-  window.exportarReforçPDF = function(id) {
-    const r = rutesReforç.find(x => x.id === id);
-    if (!r) return;
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    doc.setFillColor(15, 59, 95);
-    doc.rect(0, 0, 210, 30, 'F');
-    doc.setTextColor(255,255,255);
-    doc.setFontSize(18);
-    doc.text(`Ruta de Reforç: ${r.nom}`, 10, 20);
-    doc.setTextColor(0,0,0);
-    doc.setFontSize(12);
-    doc.text(`Fracció: ${r.fraccio}`, 10, 40);
-    let y = 50;
-    r.carrers.forEach((c, i) => {
-      if (y > 270) { doc.addPage(); y = 20; }
-      doc.text(`${i+1}. ${c.carrer} (${c.poble})`, 10, y);
-      y += 7;
-    });
-    doc.save(`reforc_${r.nom}.pdf`);
-  };
-  
-  document.getElementById('btnGuardarReforç')?.addEventListener('click', () => {
-    const nom = document.getElementById('refNom').value.trim();
-    const fraccio = document.getElementById('refFraccio').value;
-    const carrersSel = [...document.querySelectorAll('.cb-carrer:checked')].map(cb => JSON.parse(cb.value));
-    if (!nom || !fraccio || !carrersSel.length) {
-      showToast('Omple tots els camps i selecciona almenys un carrer');
-      return;
-    }
-    const editId = document.getElementById('refEditId').value;
-    if (editId) {
-      const idx = rutesReforç.findIndex(r => r.id === editId);
-      if (idx !== -1) {
-        rutesReforç[idx].nom = nom;
-        rutesReforç[idx].fraccio = fraccio;
-        rutesReforç[idx].carrers = carrersSel;
-      }
-      document.getElementById('btnCancelarReforç').style.display = 'none';
-      document.getElementById('btnGuardarReforç').innerHTML = '<i class="fas fa-save"></i> Guardar ruta';
-      document.getElementById('refEditId').value = '';
-    } else {
-      rutesReforç.push({ id: Date.now().toString(), nom, fraccio, carrers: carrersSel, data: new Date().toLocaleString() });
-    }
-    guardarRutesReforç();
-    renderRutesReforç();
-    renderRutesReforçRutes();
-    document.getElementById('refNom').value = '';
-    document.getElementById('refFraccio').value = '';
-    document.querySelectorAll('.cb-poble').forEach(cb => cb.checked = false);
-    actualitzarCheckboxesCarrers();
-    showToast('Ruta guardada correctament');
-  });
-  
-  function actualitzarLlistaPendents() {
-    const poble = document.getElementById('rutaPobleSelect').value;
-    const fraccio = document.getElementById('rutaRapidaFraccio').value;
-    const tbody = document.querySelector('#taulaPendentsPlanificacio tbody');
-    const sense = document.getElementById('sensePendents');
-    if (!poble) {
-      if (tbody) tbody.innerHTML = '';
-      if (sense) sense.style.display = 'block';
-      document.getElementById('numContenidorsPlanificacio').innerText = '-';
-      return;
-    }
-    let pendents = contenidors.filter(c => c.estat_general === 'No fet' && c.poble === poble);
-    if (fraccio) pendents = pendents.filter(c => c.tipus === fraccio);
-    document.getElementById('numContenidorsPlanificacio').innerText = pendents.length;
-    if (pendents.length === 0) {
-      if (tbody) tbody.innerHTML = '';
-      if (sense) sense.style.display = 'block';
-    } else {
-      if (sense) sense.style.display = 'none';
-      if (tbody) tbody.innerHTML = pendents.map(c => `<tr>
-        <td>${c.carrer}</td>
-        <td>${c.num_tancament||''}</td>
-        <td><span class="tipus-badge tipus-${c.tipus.toLowerCase().replace('à','a')}">${c.tipus}</span></td>
-        <td>${c.lat ? `<button class="btn-sm btn-secondary" onclick="obrirStreetView(${c.lat},${c.lng})"><i class="fas fa-street-view"></i></button>
-           <button class="btn-sm btn-secondary" onclick="obrirGoogleMaps(${c.lat},${c.lng})"><i class="fas fa-map-marker-alt"></i></button>` : '—'}</td>
-      </tr>`).join('');
-    }
-  }
-  
-  document.getElementById('btnGenerarEnllacRapid')?.addEventListener('click', () => {
-    const poble = document.getElementById('rutaPobleSelect').value;
-    const fraccio = document.getElementById('rutaRapidaFraccio').value;
-    if (!poble) { showToast('Selecciona un poble'); return; }
-    let pendents = contenidors.filter(c => c.lat && c.lng && c.estat_general === 'No fet' && c.poble === poble);
-    if (fraccio) pendents = pendents.filter(c => c.tipus === fraccio);
-    if (pendents.length < 2) { showToast('Calen almenys 2 contenidors amb coordenades'); return; }
-    let ruta = [...pendents], actual = { lat: ruta[0].lat, lng: ruta[0].lng }, nova = [];
-    while (ruta.length) {
-      let idx = 0, minDist = Infinity;
-      ruta.forEach((p, i) => {
-        const d = Math.hypot(p.lat - actual.lat, p.lng - actual.lng);
-        if (d < minDist) { minDist = d; idx = i; }
-      });
-      nova.push(ruta[idx]);
-      actual = { lat: ruta[idx].lat, lng: ruta[idx].lng };
-      ruta.splice(idx, 1);
-    }
-    const origin = `${nova[0].lat},${nova[0].lng}`;
-    const dest = `${nova[nova.length-1].lat},${nova[nova.length-1].lng}`;
-    const waypts = nova.length > 2 ? `&waypoints=${nova.slice(1,-1).map(c => `${c.lat},${c.lng}`).join('|')}` : '';
-    window.open(`https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}${waypts}&travelmode=driving`, '_blank');
-    const temps = Math.round(nova.reduce((acc, _, i, arr) => i ? acc + Math.hypot(arr[i].lat-arr[i-1].lat, arr[i].lng-arr[i-1].lng)*111000 : 0, 0)/500);
-    document.getElementById('rutaTempsEstimat').innerText = temps + ' min';
-  });
-  
-  document.getElementById('btnMarcarRutaFeta')?.addEventListener('click', async () => {
-    const poble = document.getElementById('rutaPobleSelect').value;
-    const fraccio = document.getElementById('rutaRapidaFraccio').value;
-    if (!poble) { showToast('Selecciona un poble'); return; }
-    let pendents = contenidors.filter(c => c.estat_general === 'No fet' && c.poble === poble);
-    if (fraccio) pendents = pendents.filter(c => c.tipus === fraccio);
-    if (!pendents.length) { showToast('No hi ha contenidors pendents'); return; }
-    if (!confirm(`Marcar ${pendents.length} contenidors com a fets?`)) return;
-    for (let c of pendents) {
-      if (isOnline) {
-        await sb.from('contenidors').update({ estat_general: 'Fet' }).eq('id', c.id);
-      } else {
-        await addPendingAction('update_estat', { id: c.id, estat: 'Fet' });
-        c.estat_general = 'Fet';
-      }
-    }
-    await carregarContenidors();
-    showToast(`Ruta marcada: ${pendents.length} contenidors fets`);
-  });
-  
-  // Carga de datos de ejemplo simplificada
-  async function carregarExemples() {
-    if (currentUserRole !== 'admin') return;
-    if (!confirm('Carregar dades d\'exemple? Això esborrarà les dades actuals.')) return;
-    
-    const exemples = [
-      { carrer: "Major", num_tancament: "1", poble: "Sallent", tipus: "Orgànica", lat: 41.8245, lng: 1.8950, estat_general: "No fet" },
-      { carrer: "Major", num_tancament: "2", poble: "Sallent", tipus: "Resta", lat: 41.8246, lng: 1.8951, estat_general: "No fet" },
-      { carrer: "Sant Antoni", num_tancament: "5", poble: "Sallent", tipus: "Envasos", lat: 41.8250, lng: 1.8945, estat_general: "No fet" },
-      { carrer: "Major", num_tancament: "10", poble: "Balsareny", tipus: "Paper", lat: 41.8619, lng: 1.8772, estat_general: "No fet" },
-      { carrer: "Nou", num_tancament: "3", poble: "Balsareny", tipus: "Vidre", lat: 41.8620, lng: 1.8775, estat_general: "No fet" }
-    ];
-    
-    if (isOnline) {
-      await sb.from('contenidors').delete().neq('id', 0);
-      await sb.from('contenidors').insert(exemples);
-    } else {
-      for (const ex of exemples) {
-        ex.id = Date.now() + Math.random();
-        await addPendingAction('insert_contenidor', ex);
-      }
-    }
-    await carregarContenidors();
-    showToast('Dades d\'exemple carregades');
-  }
-  
-  // Event listeners
-  document.getElementById('rutesPobleSelect')?.addEventListener('change', () => { paginaActual = 1; actualitzarLlistatPaginat(); });
-  document.getElementById('rutesFraccioFiltre')?.addEventListener('change', () => { paginaActual = 1; actualitzarLlistatPaginat(); });
-  document.getElementById('quickSearchRoutes')?.addEventListener('input', () => { paginaActual = 1; actualitzarLlistatPaginat(); });
-  document.getElementById('btnPagAnt')?.addEventListener('click', () => { if (paginaActual > 1) { paginaActual--; actualitzarLlistatPaginat(); } });
-  document.getElementById('btnPagSeg')?.addEventListener('click', () => { paginaActual++; actualitzarLlistatPaginat(); });
-  document.getElementById('rutaPobleSelect')?.addEventListener('change', actualitzarLlistaPendents);
-  document.getElementById('rutaRapidaFraccio')?.addEventListener('change', actualitzarLlistaPendents);
-  document.getElementById('btnExportarBackup')?.addEventListener('click', exportarBackupCompleto);
-  document.getElementById('btnImportarBackup')?.addEventListener('click', () => document.getElementById('restoreFileInput').click());
-  document.getElementById('restoreFileInput')?.addEventListener('change', async (e) => {
-    if (e.target.files[0]) await importarBackup(e.target.files[0]);
-    e.target.value = '';
-  });
-  document.getElementById('forceSyncBtn')?.addEventListener('click', syncPendingActions);
-  document.getElementById('btnNetejarCacheOffline')?.addEventListener('click', () => {
-    if (confirm('Netejar cache offline?')) location.reload();
-  });
-  document.getElementById('btnCarregarExemple')?.addEventListener('click', carregarExemples);
-  document.getElementById('btnAplicarFiltres')?.addEventListener('click', () => {
-    const poble = document.getElementById('filtrePobleSelect').value;
-    const carrer = document.getElementById('filtreCarrer').value.toLowerCase();
-    const tipus = document.getElementById('filtreTipus').value;
-    let filtrats = contenidors;
-    if (poble) filtrats = filtrats.filter(c => c.poble === poble);
-    if (carrer) filtrats = filtrats.filter(c => c.carrer.toLowerCase().includes(carrer));
-    if (tipus) filtrats = filtrats.filter(c => c.tipus === tipus);
-    omplirTaulaGestioAmbDades(filtrats);
-  });
-  document.getElementById('btnNetejarFiltres')?.addEventListener('click', () => {
-    document.getElementById('filtrePobleSelect').value = '';
-    document.getElementById('filtreCarrer').value = '';
-    document.getElementById('filtreTipus').value = '';
-    omplirTaulaGestioAmbDades(contenidors);
-  });
-  
-  document.getElementById('btnGuardarComentari')?.addEventListener('click', () => {
-    const poble = document.getElementById('comentariPobleSelect').value;
-    const text = document.getElementById('comentariRuta').value.trim();
-    if (!poble || !text) { showToast('Falta poble o text'); return; }
-    const comentari = { id: Date.now(), data: new Date().toLocaleString(), usuari: currentUserDisplayName, text };
-    const obj = getComentaris();
-    if (!obj[poble]) obj[poble] = [];
-    obj[poble].push(comentari);
-    saveComentaris(obj);
-    document.getElementById('comentariRuta').value = '';
-    mostrarComentaris(poble);
-    
-    const notifComentaris = document.getElementById('notifComentaris')?.checked;
-    if (notifComentaris) {
-      sendPushNotification('💬 Nou comentari', `${currentUserDisplayName} ha afegit un comentari a ${poble}: "${text.substring(0,50)}..."`, 'new_comment');
-    }
-  });
-  
-  function mostrarComentaris(poble) {
-    const llista = document.getElementById('llistaComentaris');
-    if (!llista) return;
-    const comentaris = (getComentaris()[poble] || []).slice(-10).reverse();
-    llista.innerHTML = comentaris.length ? comentaris.map(c => `<div style="padding:6px;border-bottom:1px solid #ddd;"><small>${c.data}</small> – <strong>${c.usuari}</strong><br>${c.text}</div>`).join('') : '<p>Sense comentaris</p>';
-  }
-  document.getElementById('comentariPobleSelect')?.addEventListener('change', function() { mostrarComentaris(this.value); });
-  
-  document.getElementById('btnAfegirPoble')?.addEventListener('click', () => {
-    const nom = document.getElementById('nouPoble').value.trim();
-    if (!nom) return;
-    if (pobles.includes(nom)) { showToast('Ja existeix'); return; }
-    poblesAdmin.push(nom);
-    guardarPoblesAdmin();
-    pobles.push(nom);
-    pobles.sort();
-    omplirSelectsPobles();
-    renderPoblesConfig();
-    renderCheckboxesPobles();
-    showToast('Poble afegit');
-    document.getElementById('nouPoble').value = '';
-  });
-  
-  document.getElementById('btnSelAllPobles')?.addEventListener('click', () => { document.querySelectorAll('.cb-poble').forEach(cb => cb.checked = true); actualitzarCheckboxesCarrers(); });
-  document.getElementById('btnDeselAllPobles')?.addEventListener('click', () => { document.querySelectorAll('.cb-poble').forEach(cb => cb.checked = false); actualitzarCheckboxesCarrers(); });
-  document.getElementById('btnSelAllCarrers')?.addEventListener('click', () => { document.querySelectorAll('.cb-carrer').forEach(cb => cb.checked = true); actualitzarContadorCarrers(); });
-  document.getElementById('btnDeselAllCarrers')?.addEventListener('click', () => { document.querySelectorAll('.cb-carrer').forEach(cb => cb.checked = false); actualitzarContadorCarrers(); });
-  document.getElementById('refFraccio')?.addEventListener('change', actualitzarCheckboxesCarrers);
-  document.getElementById('btnCancelarReforç')?.addEventListener('click', () => {
-    document.getElementById('refEditId').value = '';
-    document.getElementById('refNom').value = '';
-    document.getElementById('refFraccio').value = '';
-    document.querySelectorAll('.cb-poble').forEach(cb => cb.checked = false);
-    actualitzarCheckboxesCarrers();
-    document.getElementById('btnCancelarReforç').style.display = 'none';
-    document.getElementById('btnGuardarReforç').innerHTML = '<i class="fas fa-save"></i> Guardar ruta';
-  });
-  
-  document.getElementById('btnCapturarUbicacio')?.addEventListener('click', function() {
-    if (!navigator.geolocation) { showToast('Geolocalització no suportada'); return; }
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      document.getElementById('gestLat').value = pos.coords.latitude.toFixed(6);
-      document.getElementById('gestLng').value = pos.coords.longitude.toFixed(6);
-      showToast('Ubicació capturada');
-    }, () => showToast('Error obtenint ubicació'));
-  });
-  
-  window.editarContenidor = function(id) {
-    const c = contenidors.find(x => x.id === id);
-    if (!c) return;
-    document.getElementById('gestCarrer').value = c.carrer;
-    document.getElementById('gestNumero').value = c.num_tancament || '';
-    document.getElementById('gestPoble').value = c.poble;
-    document.querySelectorAll('.gest-fraccio').forEach(cb => { cb.checked = (cb.value === c.tipus); });
-    document.getElementById('gestLat').value = c.lat || '';
-    document.getElementById('gestLng').value = c.lng || '';
-    document.getElementById('gestEditId').value = c.id;
-    document.getElementById('btnCancelarEdicio').style.display = 'inline-flex';
-    document.getElementById('btnGuardarContenidor').innerHTML = '<i class="fas fa-save"></i> Actualitzar';
-  };
-  
-  window.eliminarContenidor = async function(id) {
-    if (!confirm('Eliminar?')) return;
-    if (isOnline) {
-      await sb.from('contenidors').delete().eq('id', id);
-    } else {
-      await addPendingAction('delete_contenidor', { id: id });
-      contenidors = contenidors.filter(c => c.id !== id);
-      await saveToIndexedDB('contenidors', contenidors);
-    }
-    await carregarContenidors();
-  };
-  
-  document.getElementById('btnCancelarEdicio')?.addEventListener('click', () => {
-    document.getElementById('gestEditId').value = '';
-    document.getElementById('gestCarrer').value = '';
-    document.getElementById('gestNumero').value = '';
-    document.getElementById('gestLat').value = '';
-    document.getElementById('gestLng').value = '';
-    document.querySelectorAll('.gest-fraccio').forEach(cb => { cb.checked = false; });
-    document.getElementById('btnCancelarEdicio').style.display = 'none';
-    document.getElementById('btnGuardarContenidor').innerHTML = '<i class="fas fa-save"></i> Guardar';
-  });
-  
-  document.getElementById('btnGuardarContenidor')?.addEventListener('click', async () => {
-    const carrer = document.getElementById('gestCarrer').value.trim();
-    const poble = document.getElementById('gestPoble').value;
-    if (!carrer || !poble) { showToast('Carrer i poble obligatoris'); return; }
-    const num = document.getElementById('gestNumero').value.trim();
-    const lat = parseFloat(document.getElementById('gestLat').value) || null;
-    const lng = parseFloat(document.getElementById('gestLng').value) || null;
-    const editId = document.getElementById('gestEditId').value;
-    
-    if (editId) {
-      const tipus = [...document.querySelectorAll('.gest-fraccio')].find(cb => cb.checked)?.value;
-      if (!tipus) { showToast('Selecciona una fracció'); return; }
-      const updateData = { carrer, num_tancament: num, poble, tipus, lat, lng };
-      if (isOnline) {
-        await sb.from('contenidors').update(updateData).eq('id', editId);
-      } else {
-        await addPendingAction('update_contenidor', { id: editId, ...updateData });
-        const index = contenidors.findIndex(c => c.id == editId);
-        if (index !== -1) contenidors[index] = { ...contenidors[index], ...updateData };
-        await saveToIndexedDB('contenidors', contenidors);
-      }
-      showToast('Actualitzat');
-    } else {
-      const fraccionsSeleccionades = [];
-      document.querySelectorAll('.gest-fraccio').forEach((cb, idx) => {
-        if (cb.checked) {
-          const quantitat = parseInt(document.querySelectorAll('.gest-quantitat')[idx].value) || 1;
-          for (let i = 0; i < quantitat; i++) fraccionsSeleccionades.push(cb.value);
-        }
-      });
-      if (!fraccionsSeleccionades.length) { showToast('Selecciona almenys una fracció'); return; }
-      for (const tipus of fraccionsSeleccionades) {
-        const nouContenidor = { carrer, num_tancament: num, poble, tipus, lat, lng, estat_general: 'No fet' };
-        if (isOnline) {
-          await sb.from('contenidors').insert([nouContenidor]);
-        } else {
-          nouContenidor.id = Date.now() + Math.random();
-          await addPendingAction('insert_contenidor', nouContenidor);
-          contenidors.push(nouContenidor);
-        }
-      }
-      showToast(`${fraccionsSeleccionades.length} contenidor(s) afegit(s)`);
-    }
-    await carregarContenidors();
-    document.getElementById('btnCancelarEdicio').click();
-  });
-  
-  document.getElementById('btnPlantillaRutes')?.addEventListener('click', () => {
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet([['Carrer','Numero','Tipus','Poble','Lat','Lng']]);
-    XLSX.utils.book_append_sheet(wb, ws, 'Plantilla');
-    XLSX.writeFile(wb, 'plantilla_contenidors.xlsx');
-  });
-  
-  document.getElementById('btnImportarRutes')?.addEventListener('click', () => document.getElementById('fileImportRutes').click());
-  document.getElementById('fileImportRutes')?.addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const data = await file.arrayBuffer();
-    const wb = XLSX.read(data);
-    const sheet = wb.Sheets[wb.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(sheet);
-    let importats = 0;
-    for (const r of rows) {
-      if (!r.Carrer || !r.Tipus) continue;
-      const nou = { carrer: r.Carrer, num_tancament: r.Numero?.toString() || '', tipus: r.Tipus, poble: r.Poble || 'Desconegut', lat: r.Lat || null, lng: r.Lng || null, estat_general: 'No fet' };
-      if (isOnline) {
-        await sb.from('contenidors').insert([nou]);
-      } else {
-        nou.id = Date.now() + importats;
-        await addPendingAction('insert_contenidor', nou);
-        contenidors.push(nou);
-      }
-      importats++;
-    }
-    await carregarContenidors();
-    showToast(`${importats} contenidors importats`);
-    e.target.value = '';
-  });
-  
-  document.getElementById('btnExportarDades')?.addEventListener('click', () => {
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet([['Carrer','Numero','Tipus','Poble','Lat','Lng','Estat'], ...contenidors.map(c => [c.carrer, c.num_tancament||'', c.tipus, c.poble, c.lat||'', c.lng||'', c.estat_general])]);
-    XLSX.utils.book_append_sheet(wb, ws, 'Contenidors');
-    XLSX.writeFile(wb, 'contenidors.xlsx');
-  });
-  
-  document.getElementById('btnExportarAgrupada')?.addEventListener('click', () => {
-    const agrupats = {};
-    contenidors.forEach(c => {
-      if (!agrupats[c.poble]) agrupats[c.poble] = [];
-      agrupats[c.poble].push([c.carrer, c.num_tancament||'', c.tipus]);
-    });
-    const wb = XLSX.utils.book_new();
-    Object.entries(agrupats).forEach(([poble, dades]) => {
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Carrer','Número','Tipus'], ...dades]), poble.substring(0,31));
-    });
-    XLSX.writeFile(wb, 'contenidors_per_poble.xlsx');
-  });
-  
-  document.getElementById('btnInformePDF')?.addEventListener('click', () => {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    doc.text('Informe LOGO Rutes', 10, 20);
-    doc.text(`Generat: ${new Date().toLocaleString()}`, 10, 30);
-    let y = 50;
-    const perPoble = {};
-    contenidors.forEach(c => {
-      if (!perPoble[c.poble]) perPoble[c.poble] = { total: 0, perTipus: {} };
-      perPoble[c.poble].total++;
-      perPoble[c.poble].perTipus[c.tipus] = (perPoble[c.poble].perTipus[c.tipus] || 0) + 1;
-    });
-    Object.entries(perPoble).forEach(([poble, dades]) => {
-      if (y > 270) { doc.addPage(); y = 20; }
-      doc.setFontSize(12);
-      doc.text(`${poble}: ${dades.total} contenidors`, 10, y);
-      y += 6;
-      Object.entries(dades.perTipus).forEach(([tipus, quant]) => {
-        doc.setFontSize(10);
-        doc.text(`  - ${tipus}: ${quant}`, 15, y);
-        y += 5;
-      });
-      y += 5;
-    });
-    doc.save('informe_logo_rutes.pdf');
-  });
-  
-  async function loadAllOfflineData() {
-    try {
-      const offlineContenidors = await loadFromIndexedDB('contenidors');
-      if (offlineContenidors && offlineContenidors.length > 0) contenidors = offlineContenidors;
-      const offlineRutes = await loadFromIndexedDB('rutes_reforc');
-      if (offlineRutes && offlineRutes.length > 0) rutesReforç = offlineRutes;
-      const pending = await loadFromIndexedDB('pending_actions');
-      if (pending && pending.length > 0) {
-        pendingActions = pending;
-        updatePendingSyncUI();
-      }
-    } catch (err) { console.error(err); }
-  }
-  
-  function renderFraccionsQuantitats() {
-    const container = document.getElementById('gestFraccionsQuantitats');
-    if (container) {
-      container.innerHTML = FRACCIONS.map(f => `
-        <div style="display:flex; align-items:center; gap:8px; margin:6px 0;">
-          <input type="checkbox" class="gest-fraccio" value="${f}" style="width:auto;">
-          <input type="number" class="gest-quantitat" placeholder="Q." min="1" value="1" style="width:70px;">
-          <label style="margin:0;">${f}</label>
-        </div>
-      `).join('');
-    }
-  }
-  
-  function inicialitzarApp() {
-    carregarPobles();
-    omplirSelectsPobles();
-    renderPoblesConfig();
-    renderCheckboxesPobles();
-    renderFraccionsQuantitats();
-    carregarContenidors();
-    carregarRutesReforç();
-    mostrarListaBackups();
-    iniciarMonitorizacionNotificaciones();
-  }
-  
-  window.addEventListener('online', async () => {
-    isOnline = true;
-    document.getElementById('onlineStatus').innerHTML = '<i class="fas fa-wifi"></i> Online';
-    document.getElementById('onlineStatus').style.background = '#10b981';
-    showToast('✅ Connexió restaurada');
-    await syncPendingActions();
-    await carregarContenidors();
-    await sendPushNotification('🔄 Connexió restaurada', 'S\'ha restablert la connexió a internet. Les dades estan sincronitzades.', 'online');
-  });
-  
-  window.addEventListener('offline', async () => {
-    isOnline = false;
-    document.getElementById('onlineStatus').innerHTML = '<i class="fas fa-wifi-slash"></i> Offline';
-    document.getElementById('onlineStatus').style.background = '#ff9800';
-    showToast('📱 Mode offline');
-    await sendPushNotification('📱 Mode offline', 'Treballaràs sense connexió. Els canvis es guardaran localment.', 'offline');
-  });
-  
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const tab = btn.dataset.tab;
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      document.getElementById(`tab-${tab}`).classList.add('active');
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-    });
-  });
-  
-  document.querySelectorAll('.sub-tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const subtab = btn.dataset.subtab;
-      const parentTab = btn.closest('.tab-content');
-      parentTab.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      parentTab.querySelectorAll('.sub-tab-content').forEach(c => c.classList.remove('active'));
-      document.getElementById(`sub-${subtab}`).classList.add('active');
-    });
-  });
-  
-  carregarPobles();
-  omplirSelectsPobles();
-  renderPoblesConfig();
-  renderCheckboxesPobles();
-  renderFraccionsQuantitats();
-  carregarRutesReforç();
-  
-  (async () => {
-    const { data: { session } } = await sb.auth.getSession();
-    if (session) {
-      currentUser = session.user.email;
-      const { data: perfil } = await sb.from('usuaris_personalitzats').select('role,display_name').eq('user_id', session.user.id).single();
-      currentUserRole = perfil?.role || 'operari';
-      currentUserDisplayName = perfil?.display_name || currentUser;
-      if (currentUser === 'provama@provama.com' && currentUserRole !== 'admin') {
-        currentUserRole = 'admin';
-        if (perfil) await sb.from('usuaris_personalitzats').update({ role: 'admin' }).eq('user_id', session.user.id);
-        else await sb.from('usuaris_personalitzats').insert([{ user_id: session.user.id, nom: currentUser, role: 'admin' }]);
-      }
-      tancarLogin();
+      tbody.innerHTML = usuaris.filter(u => u.role !== 'admin').map(u => `<tr>
+        <td>${u.display_name || u.nom.split('@')[0]}</td><td>${u.nom}</td>
+        <td>${u.ultima_connexio ? new Date(u.ultima_connexio).toLocaleString() : '-'}</td>
+        <td><button class="btn-sm btn-danger" onclick="eliminarUsuari('${u.id}')"><i class="fas fa-trash"></i></button></td>
       
-      if (Notification.permission === 'default') {
-        setTimeout(() => requestNotificationPermission(), 2000);
-      } else {
-        notificationPermission = Notification.permission === 'granted';
-        if (notificationPermission) document.getElementById('notifStatus').innerHTML = '<i class="fas fa-bell"></i> Notificacions activades';
-      }
-    }
-  })();
-</script>
-</body>
-</html>

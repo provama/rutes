@@ -1,0 +1,1407 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+  <title>LOGO · Rutes i Gestió</title>
+  <link rel="manifest" href="data:application/manifest+json,{&quot;name&quot;:&quot;LOGO Rutes&quot;,&quot;short_name&quot;:&quot;LOGO Rutes&quot;,&quot;start_url&quot;:&quot;.&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;background_color&quot;:&quot;#0f3b5f&quot;,&quot;theme_color&quot;:&quot;#0f3b5f&quot;,&quot;icons&quot;:[{&quot;src&quot;:&quot;data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚛</text></svg>&quot;,&quot;sizes&quot;:&quot;180x180&quot;,&quot;type&quot;:&quot;image/svg+xml&quot;}]}">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    :root {
+      --primary: #0f3b5f;
+      --primary-light: #1e5a7a;
+      --secondary: #f59e0b;
+      --success: #10b981;
+      --danger: #e74c3c;
+      --gray-100: #f8fafc;
+      --gray-200: #e2e8f0;
+      --gray-600: #64748b;
+      --shadow: 0 8px 20px rgba(0,0,0,0.08);
+      --radius: 20px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: linear-gradient(135deg, #e0f2fe 0%, #f0fdf4 100%);
+      font-family: 'Inter', system-ui, sans-serif;
+      padding: 12px; padding-bottom: 80px; color: #1e293b; min-height: 100vh;
+    }
+    .app-container {
+      max-width: 1200px; margin: 0 auto;
+      background: rgba(255,255,255,0.85); backdrop-filter: blur(16px);
+      border-radius: 32px; padding: 20px; box-shadow: var(--shadow);
+    }
+    .app-header {
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; margin-bottom: 24px; padding-bottom: 12px;
+      border-bottom: 2px solid var(--gray-200);
+    }
+    .logo { font-size: 1.8rem; font-weight: 800; color: var(--primary); }
+    .logo i { color: var(--secondary); margin-right: 8px; }
+    .user-panel { display: flex; gap: 10px; align-items: center; font-size: 0.9rem; }
+    .btn-logout {
+      background: var(--danger); color: white; border: none;
+      padding: 8px 18px; border-radius: 40px; cursor: pointer; font-weight: 600;
+    }
+    /* Pestanyes principals */
+    .tabs {
+      display: flex; gap: 8px; margin-bottom: 20px; background: white;
+      padding: 6px; border-radius: 40px; overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .tab-btn {
+      background: transparent; border: none; padding: 12px 20px; border-radius: 40px;
+      font-weight: 700; cursor: pointer; font-size: 1rem; color: var(--gray-600);
+      white-space: nowrap; transition: 0.3s; display: flex; align-items: center; gap: 6px;
+    }
+    .tab-btn.active { background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(15,59,95,0.3); }
+    /* Subpestanyes */
+    .sub-tabs {
+      display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap;
+      overflow-x: auto; -webkit-overflow-scrolling: touch;
+    }
+    .sub-tab-btn {
+      background: var(--gray-100); border: 1px solid var(--gray-200);
+      padding: 8px 16px; border-radius: 30px; font-weight: 600;
+      cursor: pointer; font-size: 0.85rem; color: var(--gray-600);
+      white-space: nowrap; transition: 0.2s; display: flex; align-items: center; gap: 6px;
+    }
+    .sub-tab-btn.active { background: var(--primary-light); color: white; border-color: var(--primary-light); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+    .sub-tab-content { display: none; }
+    .sub-tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .card {
+      background: white; border-radius: var(--radius); padding: 20px;
+      margin-bottom: 20px; box-shadow: var(--shadow);
+    }
+    .card h3 { margin-bottom: 16px; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+    .table-wrapper {
+      overflow-x: auto; border-radius: 16px; border: 1px solid var(--gray-200);
+      -webkit-overflow-scrolling: touch;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 700px; }
+    th { background: var(--primary); color: white; padding: 12px; text-align: left; }
+    td { padding: 10px 12px; border-bottom: 1px solid var(--gray-200); }
+    tbody tr:hover { background: #e0f2fe; }
+    .tipus-badge {
+      display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px;
+      border-radius: 30px; font-size: 0.75rem; font-weight: 600; color: white;
+    }
+    .tipus-organica { background: #8B4513; } .tipus-resta { background: #1a1a1a; }
+    .tipus-envasos { background: #fbbf24; color: #1e3a8a; } .tipus-paper { background: #3b82f6; }
+    .tipus-vidre { background: #22c55e; }
+    .btn-sm {
+      padding: 8px 16px; border-radius: 30px; border: none; font-weight: 600;
+      cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+      font-size: 0.85rem; transition: 0.2s;
+    }
+    .btn-success { background: var(--success); color: white; }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-secondary { background: var(--gray-600); color: white; }
+    .btn-warning { background: var(--secondary); color: white; }
+    .btn-outline { background: white; border: 2px solid var(--primary); color: var(--primary); }
+    .btn-icon { background: transparent; border: none; font-size: 1.5rem; cursor: pointer; color: var(--primary); }
+    .btn-icon:hover { color: var(--secondary); }
+    input, select, textarea {
+      width: 100%; padding: 10px 16px; margin: 4px 0 12px; border-radius: 16px;
+      border: 1px solid var(--gray-200); font-size: 15px; background: white;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--primary); box-shadow: 0 0 0 3px rgba(15,59,95,0.1); outline: none;
+    }
+    .driver-highlight {
+      background: #fff7e0; border-left: 6px solid var(--secondary); padding: 16px 20px;
+      border-radius: 16px; margin-bottom: 20px; display: flex; align-items: center;
+      justify-content: space-between; font-weight: 600;
+    }
+    .checkbox-group {
+      display: flex; flex-wrap: wrap; gap: 10px; padding: 12px; background: var(--gray-100);
+      border-radius: 16px; margin: 8px 0; max-height: 200px; overflow-y: auto;
+      border: 1px solid var(--gray-200);
+    }
+    .checkbox-group label {
+      display: flex; align-items: center; gap: 8px; padding: 6px 14px;
+      background: white; border-radius: 20px; border: 1px solid var(--gray-200); cursor: pointer;
+    }
+    .checkbox-group input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--primary); }
+    .hidden { display: none; }
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: #1e293b; color: white; padding: 12px 28px; border-radius: 40px;
+      z-index: 9999; font-weight: 500; box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      animation: fadeOut 3s forwards;
+    }
+    @keyframes fadeOut { 0%{opacity:0;} 10%{opacity:1;} 90%{opacity:1;} 100%{opacity:0;} }
+    .login-overlay {
+      position: fixed; top:0; left:0; right:0; bottom:0;
+      background: linear-gradient(135deg, var(--primary) 0%, #1e4d6b 100%);
+      display: flex; align-items: center; justify-content: center; z-index: 2000;
+    }
+    .login-card {
+      background: white; border-radius: 48px; padding: 40px 32px;
+      width: 90%; max-width: 420px; text-align: center; box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+    }
+    /* Responsive */
+    @media (max-width: 768px) {
+      .app-container { padding: 12px; }
+      .app-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+      .tabs { gap: 4px; padding: 4px; }
+      .tab-btn { padding: 10px 14px; font-size: 0.9rem; }
+      .sub-tabs { gap: 4px; }
+      .sub-tab-btn { padding: 6px 12px; font-size: 0.75rem; }
+      .card { padding: 12px; }
+      th, td { padding: 8px 10px; font-size: 0.75rem; }
+      .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+    }
+  </style>
+</head>
+<body>
+<!-- LOGIN -->
+<div id="loginOverlay" class="login-overlay">
+  <div class="login-card">
+    <div style="font-size:3.5rem; font-weight:800; color:var(--primary);">🚛</div>
+    <h2 style="color:var(--primary); margin-bottom:24px;">LOGO Rutes</h2>
+    <input type="email" id="loginUser" placeholder="Correu electrònic" value="provama@provama.com" autocomplete="email">
+    <input type="password" id="loginPass" placeholder="Contrasenya" value="provama123" autocomplete="current-password">
+    <button id="btnLogin" style="width:100%; padding:14px; background:var(--primary); color:white; border:none; border-radius:30px; font-weight:700; font-size:16px; cursor:pointer; margin-bottom:10px;">Iniciar sessió</button>
+    <div id="loginError" style="color:var(--danger); margin-top:12px; font-weight:500;"></div>
+    <p style="margin-top:16px; font-size:0.8rem; color:var(--gray-600);">prova: provama@provama.com / provama123</p>
+  </div>
+</div>
+
+<!-- APP PRINCIPAL -->
+<div id="mainMenu" class="app-container" style="display:none;">
+  <div class="app-header">
+    <div class="logo"><i class="fas fa-recycle"></i> LOGO Rutes</div>
+    <div class="user-panel">
+      <i class="fas fa-user-circle"></i> <span id="currentUserMenu"></span>
+      <span style="background:var(--primary); color:white; padding:2px 10px; border-radius:20px; font-size:0.75rem;" id="userRoleMenu"></span>
+      <button class="btn-logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Sortir</button>
+    </div>
+  </div>
+
+  <div class="tabs" id="mainTabs">
+    <button class="tab-btn active" data-tab="rutes"><i class="fas fa-truck"></i> Rutes</button>
+    <button class="tab-btn" data-tab="config"><i class="fas fa-cog"></i> Configuració</button>
+    <button class="tab-btn" data-tab="gestio" id="tabGestioBtn" style="display:none;"><i class="fas fa-tasks"></i> Gestió</button>
+  </div>
+
+  <!-- ===== RUTES ===== -->
+  <div id="tab-rutes" class="tab-content active">
+    <div class="sub-tabs">
+      <button class="sub-tab-btn active" data-subtab="rutes-llistat"><i class="fas fa-list"></i> Llistat</button>
+      <button class="sub-tab-btn" data-subtab="rutes-planificacio"><i class="fas fa-route"></i> Planificació</button>
+      <button class="sub-tab-btn" data-subtab="rutes-reforc"><i class="fas fa-shield-alt"></i> Reforç</button>
+      <button class="sub-tab-btn" data-subtab="rutes-comentaris"><i class="fas fa-comment-dots"></i> Comentaris</button>
+    </div>
+
+    <!-- Llistat -->
+    <div id="sub-rutes-llistat" class="sub-tab-content active">
+      <div class="card">
+        <h3><i class="fas fa-container-storage"></i> Contenidors</h3>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
+          <select id="rutesPobleSelect"><option value="">Tots els pobles</option></select>
+          <select id="rutesFraccioFiltre">
+            <option value="">Totes les fraccions</option>
+            <option value="Orgànica">Orgànica</option><option value="Resta">Resta</option>
+            <option value="Envasos">Envasos</option><option value="Paper">Paper</option><option value="Vidre">Vidre</option>
+          </select>
+          <input type="text" id="quickSearchRoutes" placeholder="🔍 Cerca ràpida..." style="flex:1; min-width:150px;">
+        </div>
+        <div class="table-wrapper">
+          <table id="taulaRutes">
+            <thead><tr><th>ID</th><th>Núm.</th><th>Tipus</th><th>Poble</th><th>Carrer</th><th>Estat</th><th>Mapa</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Planificació -->
+    <div id="sub-rutes-planificacio" class="sub-tab-content">
+      <div class="driver-highlight">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <i class="fas fa-user-hard-hat" style="font-size:2rem; color:var(--secondary);"></i>
+          <div>
+            <div style="font-size:1.2rem;" id="displayConductor">—</div>
+            <div style="font-size:0.8rem; color:var(--gray-600);" id="driverDateHint"></div>
+          </div>
+        </div>
+        <i class="fas fa-check-circle" style="color:var(--success); font-size:1.8rem;"></i>
+      </div>
+      <div class="card">
+        <h3><i class="fas fa-map-marked-alt"></i> Planificació de ruta</h3>
+        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+          <div style="flex:1;"><label>Poble</label><select id="rutaPobleSelect"><option value="">Selecciona un poble</option></select></div>
+          <div style="flex:1;"><label>Fracció</label><select id="rutaRapidaFraccio"><option value="">Totes</option><option value="Orgànica">Orgànica</option><option value="Resta">Resta</option><option value="Envasos">Envasos</option><option value="Paper">Paper</option><option value="Vidre">Vidre</option></select></div>
+        </div>
+        <div style="display:flex; gap:16px; margin-top:16px; align-items:center;">
+          <button id="btnGenerarEnllacRapid" class="btn-icon" title="Obrir a Google Maps"><i class="fas fa-map-marked-alt fa-2x"></i></button>
+          <button id="btnStreetViewRuta" class="btn-icon" title="Street View"><i class="fas fa-street-view fa-2x"></i></button>
+          <button id="btnMarcarRutaFeta" class="btn-sm btn-success"><i class="fas fa-check-double"></i> Marcar com a feta</button>
+        </div>
+        <p style="margin-top:8px; color:var(--gray-600);"><i class="far fa-clock"></i> Temps estimat: <strong id="rutaTempsEstimat">-</strong></p>
+      </div>
+    </div>
+
+    <!-- Reforç -->
+    <div id="sub-rutes-reforc" class="sub-tab-content">
+      <div class="card">
+        <h3><i class="fas fa-shield-alt"></i> Rutes de Reforç</h3>
+        <div id="infoReforçAdmin" style="display:none; background:#eff6ff; padding:12px; border-radius:12px; margin-bottom:12px;">
+          <i class="fas fa-info-circle"></i> Crea rutes de reforç des de <strong>Gestió > Rutes Reforç</strong>.
+        </div>
+        <div class="table-wrapper">
+          <table id="taulaReforcRutes">
+            <thead><tr><th>Nom</th><th>Fracció</th><th>Pobles</th><th>Carrers</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <!-- Detall de la ruta seleccionada -->
+        <div id="detallReforçSeleccionat" style="margin-top:16px; display:none;">
+          <h4>Detall de la ruta</h4>
+          <div class="table-wrapper">
+            <table id="taulaDetallReforç">
+              <thead><tr><th>Poble</th><th>Carrer</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <p style="margin-top:8px;"><strong>Temps estimat:</strong> <span id="tempsReforç">-</span></p>
+          <div style="display:flex; gap:10px; align-items:center; margin-top:8px;">
+            <label>Inici pel poble:</label>
+            <select id="refPobleInici" style="width:auto;"></select>
+            <button id="btnReforçObrirMaps" class="btn-sm btn-success"><i class="fas fa-map-marked-alt"></i> Obrir a Google Maps</button>
+            <button id="btnReforçStreetView" class="btn-sm btn-secondary"><i class="fas fa-street-view"></i> Street View</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Comentaris -->
+    <div id="sub-rutes-comentaris" class="sub-tab-content">
+      <div class="card">
+        <h3><i class="fas fa-comments"></i> Comentaris per poble</h3>
+        <select id="comentariPobleSelect"><option value="">Selecciona un poble</option></select>
+        <textarea id="comentariRuta" placeholder="Escriu una incidència..." rows="2"></textarea>
+        <button id="btnGuardarComentari" class="btn-sm btn-success" style="margin-top:8px;"><i class="fas fa-save"></i> Guardar</button>
+        <button id="btnObrirPopupComentaris" class="btn-sm btn-secondary" style="margin-top:8px;"><i class="fas fa-external-link-alt"></i> Veure tots</button>
+        <div id="llistaComentaris" style="margin-top:12px; max-height:200px; overflow-y:auto; background:var(--gray-100); border-radius:12px; padding:8px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CONFIGURACIÓ ===== -->
+  <div id="tab-config" class="tab-content">
+    <div class="card">
+      <h3><i class="fas fa-users"></i> Usuaris</h3>
+      <div id="configAdminSection">
+        <div style="margin-bottom:12px;">
+          <button id="btnMostrarFormUsuari" class="btn-sm btn-success"><i class="fas fa-plus"></i> Afegir usuari</button>
+        </div>
+        <div id="formAfegirUsuari" class="hidden">
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+            <input type="email" id="nouUserEmail" placeholder="Correu (obligatori)" style="flex:1;">
+            <input type="password" id="nouUserPass" placeholder="Contrasenya (només per a nous)" style="flex:1;">
+            <input type="text" id="nouDisplayName" placeholder="Nom conductor" style="flex:1;">
+            <select id="nouRol"><option value="operari">Operari</option><option value="admin">Admin</option></select>
+            <button id="btnAfegirUsuari" class="btn-sm btn-success">Afegir</button>
+            <button id="btnCancelarFormUsuari" class="btn-sm btn-secondary">Cancel·lar</button>
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table id="taulaUsuaris">
+            <thead><tr><th>Correu</th><th>Conductor</th><th>Rol</th><th>Accions</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="configNoAdmin" style="display:none;"><p>Accés restringit.</p></div>
+      <div style="margin-top:12px;" id="adminDataButtons">
+        <button id="btnCarregarExemple" class="btn-sm btn-warning"><i class="fas fa-database"></i> Carregar dades exemple</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== GESTIÓ ===== -->
+  <div id="tab-gestio" class="tab-content">
+    <div class="sub-tabs">
+      <button class="sub-tab-btn active" data-subtab="gestio-pobles"><i class="fas fa-city"></i> Pobles</button>
+      <button class="sub-tab-btn" data-subtab="gestio-contenidors"><i class="fas fa-box"></i> Contenidors</button>
+      <button class="sub-tab-btn" data-subtab="gestio-reforc"><i class="fas fa-shield-alt"></i> Rutes Reforç</button>
+      <button class="sub-tab-btn" data-subtab="gestio-plantilles"><i class="fas fa-file-excel"></i> Plantilles</button>
+    </div>
+
+    <!-- Pobles -->
+    <div id="sub-gestio-pobles" class="sub-tab-content active">
+      <div class="card">
+        <h3><i class="fas fa-city"></i> Gestió de Pobles</h3>
+        <div style="display:flex; gap:8px; margin-bottom:12px;">
+          <input type="text" id="nouPoble" placeholder="Nom del poble">
+          <button id="btnAfegirPoble" class="btn-sm btn-success"><i class="fas fa-plus"></i> Afegir</button>
+        </div>
+        <div class="table-wrapper">
+          <table id="taulaPobles"><thead><tr><th>Poble</th><th>Accions</th></tr></thead><tbody></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contenidors (filtre poble desplegable) -->
+    <div id="sub-gestio-contenidors" class="sub-tab-content">
+      <div class="card">
+        <h3><i class="fas fa-plus-circle"></i> Afegir / Editar contenidors</h3>
+        <div style="display:flex; gap:10px;">
+          <input type="text" id="gestCarrer" placeholder="Carrer" style="flex:2;">
+          <input type="text" id="gestNumero" placeholder="Número" style="flex:1;">
+        </div>
+        <select id="gestPoble"><option value="">Poble</option></select>
+        <label style="font-weight:600; margin-top:8px;">Fraccions i quantitats</label>
+        <div id="gestFraccionsQuantitats"></div>
+        <div style="display:flex; gap:10px; margin-top:8px;">
+          <input type="number" id="gestLat" placeholder="Latitud" step="any">
+          <input type="number" id="gestLng" placeholder="Longitud" step="any">
+          <button id="btnGeolocalitzar" class="btn-sm btn-outline"><i class="fas fa-search-location"></i> Geo</button>
+        </div>
+        <input type="hidden" id="gestEditId">
+        <div style="margin-top:10px;">
+          <button id="btnGuardarContenidor" class="btn-sm btn-success">Guardar</button>
+          <button id="btnCancelarEdicio" class="btn-sm btn-secondary" style="display:none;">Cancel·lar</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Llistat</h3>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+          <select id="filtrePobleSelect"><option value="">Tots els pobles</option></select>
+          <input type="text" id="filtreCarrer" placeholder="Carrer">
+          <input type="text" id="filtreNumero" placeholder="Número">
+          <select id="filtreTipus"><option value="">Tipus</option><option value="Orgànica">Orgànica</option><option value="Resta">Resta</option><option value="Envasos">Envasos</option><option value="Paper">Paper</option><option value="Vidre">Vidre</option></select>
+          <input type="text" id="quickSearchGestio" placeholder="🔍 Cerca">
+          <button id="btnAplicarFiltres" class="btn-sm btn-success">Filtrar</button>
+          <button id="btnNetejarFiltres" class="btn-sm btn-secondary">Netejar</button>
+        </div>
+        <div style="display:flex; gap:8px; margin-bottom:8px;">
+          <button id="btnExportarPerPoblesExcel" class="btn-sm btn-success"><i class="fas fa-file-excel"></i> Exportar per pobles (Excel)</button>
+          <button id="btnExportarPerPoblesPDF" class="btn-sm btn-warning"><i class="fas fa-file-pdf"></i> Exportar per pobles (PDF)</button>
+        </div>
+        <div class="table-wrapper">
+          <table id="taulaGestio"><thead><tr><th>ID</th><th>Carrer</th><th>Núm.</th><th>Tipus</th><th>Poble</th><th>Coord.</th><th>Accions</th></tr></thead><tbody></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rutes de reforç (gestió) -->
+    <div id="sub-gestio-reforc" class="sub-tab-content">
+      <div class="card">
+        <h3>Crear / Editar ruta de reforç</h3>
+        <input type="text" id="refNom" placeholder="Nom de la ruta">
+        <select id="refFraccio"><option value="">Fracció</option><option value="Orgànica">Orgànica</option><option value="Resta">Resta</option><option value="Envasos">Envasos</option><option value="Paper">Paper</option><option value="Vidre">Vidre</option></select>
+        <label>Pobles</label>
+        <div class="checkbox-group" id="refPoblesCheckboxes"></div>
+        <div class="checkbox-actions" style="margin-bottom:8px;">
+          <button id="btnSelAllPobles" class="btn-sm btn-secondary">Tots</button>
+          <button id="btnDeselAllPobles" class="btn-sm btn-secondary">Cap</button>
+        </div>
+        <label>Carrers</label>
+        <div class="checkbox-group" id="refCarrersCheckboxes" style="max-height:220px;"></div>
+        <div class="checkbox-actions">
+          <button id="btnSelAllCarrers" class="btn-sm btn-success">Tots</button>
+          <button id="btnDeselAllCarrers" class="btn-sm btn-danger">Cap</button>
+          <span style="margin-left:auto;">Seleccionats: <span id="countCarrersSel">0</span></span>
+        </div>
+        <input type="hidden" id="refEditId">
+        <div style="margin-top:10px;">
+          <button id="btnGuardarReforç" class="btn-sm btn-success">Guardar ruta</button>
+          <button id="btnCancelarReforç" class="btn-sm btn-secondary" style="display:none;">Cancel·lar</button>
+        </div>
+      </div>
+      <div class="card">
+        <h4>Existents</h4>
+        <div class="table-wrapper">
+          <table id="taulaReforc"><thead><tr><th>Nom</th><th>Fracció</th><th>Pobles</th><th>Carrers</th><th>Excel</th><th>PDF</th><th></th></tr></thead><tbody></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Plantilles -->
+    <div id="sub-gestio-plantilles" class="sub-tab-content">
+      <div class="card">
+        <h3><i class="fas fa-file-excel"></i> Gestió de dades</h3>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
+          <button id="btnPlantillaRutes" class="btn-sm btn-secondary"><i class="fas fa-download"></i> Plantilla buida (Excel)</button>
+          <span>Descarrega una plantilla per emplenar i importar.</span>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
+          <button id="btnImportarRutes" class="btn-sm btn-secondary"><i class="fas fa-upload"></i> Importar Excel</button>
+          <input type="file" id="fileImportRutes" accept=".xlsx,.xls" hidden>
+          <span>Carrega contenidors des d'un fitxer Excel.</span>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
+          <button id="btnExportarDades" class="btn-sm btn-success"><i class="fas fa-file-export"></i> Exportar contenidors</button>
+          <span>Exporta tots els contenidors individualment.</span>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
+          <button id="btnExportarAgrupada" class="btn-sm btn-warning"><i class="fas fa-file-export"></i> Exportar agrupada</button>
+          <span>Exporta els contenidors agrupats per ubicació.</span>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <button id="btnInformePDF" class="btn-sm btn-success"><i class="fas fa-file-pdf"></i> Informe complet (PDF)</button>
+          <span>Resum amb totals per poble/fracció i rutes de reforç.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ===================== CONFIGURACIÓ =====================
+  const SUPABASE_URL = 'https://pcvwtcvzshwfyzsiudoy.supabase.co'; // Canvia aquí
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBjdnd0Y3Z6c2h3Znl6c2l1ZG95Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5OTgwOTAsImV4cCI6MjA5MzU3NDA5MH0.JOV-8eC7StFs4mUiHkQ4I90d3CJruYvSicJDAswzemE';
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const FRACCIONS = ["Orgànica","Resta","Envasos","Paper","Vidre"];
+  const POBLES_INICIALS = ["Sallent","Balsareny","Pont de Vilomara","Mura","Talamanca","Aguilar de Segarra","Rajadell","Fonollosa","Castellnou de Bages","Monistrol de Montserrat","Castellgalí","Callús","Sant Mateu de Bages"].sort();
+  let pobles = [], poblesAdmin = [];
+  let currentUser = null, currentUserRole = null, currentUserDisplayName = '',
+      contenidors = [], usuaris = [], rutesReforç = [];
+  let usuariEditantId = null;
+  let rutaReforçSeleccionada = null;
+
+  // ===================== AUTENTICACIÓ =====================
+  async function login() {
+    const email = document.getElementById('loginUser').value.trim();
+    const pass = document.getElementById('loginPass').value.trim();
+    if (!email || !pass) { document.getElementById('loginError').innerText = 'Omple tots els camps'; return; }
+    const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+    if (error) { document.getElementById('loginError').innerText = error.message; return; }
+    currentUser = data.user.email;
+    const { data: perfil } = await sb.from('usuaris_personalitzats').select('role,display_name').eq('user_id', data.user.id).single();
+    currentUserRole = perfil?.role || 'operari';
+    currentUserDisplayName = perfil?.display_name || currentUser;
+    if (currentUser === 'provama@provama.com' && currentUserRole !== 'admin') {
+      currentUserRole = 'admin';
+      if (perfil) await sb.from('usuaris_personalitzats').update({ role: 'admin' }).eq('user_id', data.user.id);
+      else await sb.from('usuaris_personalitzats').insert([{ user_id: data.user.id, nom: email, role: 'admin' }]);
+    }
+    tancarLogin();
+  }
+
+  async function logout() { await sb.auth.signOut(); location.reload(); }
+
+  function tancarLogin() {
+    document.getElementById('loginOverlay').style.display = 'none';
+    document.getElementById('mainMenu').style.display = 'block';
+    document.getElementById('currentUserMenu').innerText = currentUser;
+    document.getElementById('userRoleMenu').innerText = currentUserRole === 'admin' ? 'Admin' : 'Operari';
+    document.getElementById('adminDataButtons').style.display = currentUserRole === 'admin' ? 'block' : 'none';
+    document.getElementById('tabGestioBtn').style.display = currentUserRole === 'admin' ? 'inline-flex' : 'none';
+    document.getElementById('displayConductor').innerText = currentUserDisplayName;
+    document.getElementById('driverDateHint').innerText = new Date().toLocaleDateString('ca-ES');
+    inicialitzarApp();
+  }
+
+  document.getElementById('btnLogin').addEventListener('click', login);
+
+  // ===================== PESTANYES =====================
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tab = btn.dataset.tab;
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.getElementById(`tab-${tab}`).classList.add('active');
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+
+  document.querySelectorAll('.sub-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const subtab = btn.dataset.subtab;
+      const parentTab = btn.closest('.tab-content');
+      if (!parentTab) return;
+      parentTab.querySelectorAll('.sub-tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      parentTab.querySelectorAll('.sub-tab-content').forEach(c => c.classList.remove('active'));
+      document.getElementById(`sub-${subtab}`).classList.add('active');
+    });
+  });
+
+  // ===================== POBLES =====================
+  function carregarPobles() {
+    poblesAdmin = JSON.parse(localStorage.getItem('pobles_admin') || '[]');
+    pobles = [...new Set([...POBLES_INICIALS, ...poblesAdmin])].sort();
+  }
+  function guardarPoblesAdmin() { localStorage.setItem('pobles_admin', JSON.stringify(poblesAdmin)); }
+
+  function renderPoblesConfig() {
+    const tbody = document.querySelector('#taulaPobles tbody');
+    if (!tbody) return;
+    tbody.innerHTML = pobles.map(p => {
+      const esPredeterminat = POBLES_INICIALS.includes(p) || poblesAdmin.includes(p);
+      return `<tr><td>${p} ${esPredeterminat ? '<small>(predet.)</small>' : ''}</td>
+        <td>${!esPredeterminat ? `<button class="btn-sm btn-danger" onclick="eliminarPoble('${p}')"><i class="fas fa-trash"></i></button>` : '🔒'}</td></tr>`;
+    }).join('');
+  }
+
+  window.eliminarPoble = function(p) {
+    if (!confirm("Eliminar?")) return;
+    if (POBLES_INICIALS.includes(p) || poblesAdmin.includes(p)) {
+      showToast('No es poden eliminar pobles predeterminats');
+      return;
+    }
+    pobles = pobles.filter(x => x !== p);
+    omplirSelectsPobles();
+    renderPoblesConfig();
+    renderCheckboxesPobles();
+  };
+
+  function afegirPoble(nom) {
+    if (!nom.trim()) return;
+    if (pobles.includes(nom)) { showToast('Ja existeix'); return; }
+    poblesAdmin.push(nom.trim());
+    guardarPoblesAdmin();
+    pobles.push(nom.trim()); pobles.sort();
+    omplirSelectsPobles();
+    renderPoblesConfig();
+    renderCheckboxesPobles();
+    showToast('Afegit com a predeterminat');
+  }
+  document.getElementById('btnAfegirPoble').addEventListener('click', () => {
+    afegirPoble(document.getElementById('nouPoble').value);
+    document.getElementById('nouPoble').value = '';
+  });
+
+  function omplirSelectsPobles() {
+    // Selects de filtres i formularis
+    ['rutesPobleSelect','comentariPobleSelect','gestPoble','filtrePobleSelect'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      let defaultOption = '<option value="">Tots els pobles</option>';
+      if (id === 'comentariPobleSelect') defaultOption = '<option value="">Selecciona</option>';
+      else if (id === 'gestPoble') defaultOption = '<option value="">Poble</option>';
+      el.innerHTML = defaultOption + pobles.map(p => `<option>${p}</option>`).join('');
+    });
+    const rutaPoble = document.getElementById('rutaPobleSelect');
+    if (rutaPoble) rutaPoble.innerHTML = '<option value="">Selecciona un poble</option>' + pobles.map(p => `<option>${p}</option>`).join('');
+  }
+
+  // ===================== FRACCIONS AMB QUANTITAT =====================
+  function renderFraccionsQuantitats() {
+    const container = document.getElementById('gestFraccionsQuantitats');
+    if (!container) return;
+    container.innerHTML = FRACCIONS.map(f =>
+      `<div style="display:flex; align-items:center; gap:8px; margin:6px 0;">
+        <input type="checkbox" class="gest-fraccio" value="${f}" style="width:auto;">
+        <input type="number" class="gest-quantitat" placeholder="Q." min="1" value="1" style="width:70px;">
+        <label style="margin:0;">${f}</label>
+      </div>`
+    ).join('');
+  }
+
+  // ===================== CONTENIDORS =====================
+  async function carregarContenidors() {
+    try {
+      const { data, error } = await sb.from('contenidors').select('*').order('id');
+      if (error) throw error;
+      contenidors = data || [];
+      omplirTaulaRutes();
+      omplirTaulaGestioAmbDades(contenidors);
+      actualitzarCheckboxesCarrers();
+    } catch (err) {
+      showToast(`Error contenidors: ${err.message}`);
+      console.error(err);
+    }
+  }
+
+  function omplirTaulaRutes() {
+    const poble = document.getElementById('rutesPobleSelect').value;
+    const fraccio = document.getElementById('rutesFraccioFiltre').value;
+    const search = document.getElementById('quickSearchRoutes')?.value.toLowerCase() || '';
+    let filtrats = contenidors;
+    if (poble) filtrats = filtrats.filter(c => c.poble === poble);
+    if (fraccio) filtrats = filtrats.filter(c => c.tipus === fraccio);
+    if (search) filtrats = filtrats.filter(c => c.carrer.toLowerCase().includes(search) || (c.num_tancament || '').toLowerCase().includes(search) || c.poble.toLowerCase().includes(search));
+
+    const tbody = document.querySelector('#taulaRutes tbody');
+    if (tbody) tbody.innerHTML = filtrats.map(c => {
+      return `<tr>
+        <td>${c.id}</td>
+        <td>${c.num_tancament||''}</td>
+        <td><span class="tipus-badge tipus-${c.tipus.toLowerCase().replace('à','a')}">${c.tipus}</span></td>
+        <td>${c.poble}</td>
+        <td>${c.carrer}</td>
+        <td><button class="badge-estat ${c.estat_general==='Fet'?'badge-fet':'badge-nofet'}" onclick="canviarEstat(${c.id},'${c.estat_general==='Fet'?'No fet':'Fet'}')">${c.estat_general==='Fet'?'✅ Fet':'⭕ No fet'}</button></td>
+        <td>${c.lat?`<button class="btn-sm btn-secondary" onclick="obrirStreetView(${c.lat},${c.lng})"><i class="fas fa-street-view"></i></button>`:'—'}</td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="7">Sense dades</td></tr>';
+  }
+  window.canviarEstat = async (id, nou) => {
+    await sb.from('contenidors').update({ estat_general: nou }).eq('id', id);
+    await carregarContenidors();
+  };
+  window.obrirStreetView = (lat, lng) => window.open(`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lng}`, '_blank');
+
+  function omplirTaulaGestioAmbDades(dades) {
+    const tbody = document.querySelector('#taulaGestio tbody');
+    if (tbody) tbody.innerHTML = dades.map(c => `<tr>
+      <td>${c.id}</td><td>${c.carrer}</td><td>${c.num_tancament||''}</td>
+      <td><span class="tipus-badge tipus-${c.tipus.toLowerCase().replace('à','a')}">${c.tipus}</span></td>
+      <td>${c.poble}</td>
+      <td>${c.lat?c.lat.toFixed(4)+','+c.lng.toFixed(4):'—'}</td>
+      <td>
+        ${c.lat?`<button class="btn-sm btn-secondary" onclick="obrirStreetView(${c.lat},${c.lng})"><i class="fas fa-street-view"></i></button>`:''}
+        <button class="btn-sm btn-secondary" onclick="editarContenidor(${c.id})"><i class="fas fa-edit"></i></button>
+        <button class="btn-sm btn-danger" onclick="eliminarContenidor(${c.id})"><i class="fas fa-trash"></i></button>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="7">Sense contenidors</td></tr>';
+  }
+
+  window.editarContenidor = function(id) {
+    const c = contenidors.find(x => x.id === id); if (!c) return;
+    document.getElementById('gestCarrer').value = c.carrer;
+    document.getElementById('gestNumero').value = c.num_tancament || '';
+    document.getElementById('gestPoble').value = c.poble;
+    document.querySelectorAll('.gest-fraccio').forEach(cb => {
+      cb.checked = (cb.value === c.tipus);
+      cb.disabled = true;
+    });
+    document.querySelectorAll('.gest-quantitat').forEach(inp => inp.value = 1);
+    document.getElementById('gestLat').value = c.lat || '';
+    document.getElementById('gestLng').value = c.lng || '';
+    document.getElementById('gestEditId').value = c.id;
+    document.getElementById('btnCancelarEdicio').style.display = 'inline-flex';
+    document.getElementById('btnGuardarContenidor').innerHTML = '<i class="fas fa-save"></i> Actualitzar';
+  };
+  window.eliminarContenidor = async function(id) {
+    if (!confirm('Eliminar?')) return;
+    await sb.from('contenidors').delete().eq('id', id);
+    await carregarContenidors();
+  };
+
+  document.getElementById('btnCancelarEdicio').addEventListener('click', () => {
+    document.getElementById('gestEditId').value = '';
+    document.getElementById('gestCarrer').value = '';
+    document.getElementById('gestNumero').value = '';
+    document.getElementById('gestLat').value = '';
+    document.getElementById('gestLng').value = '';
+    document.querySelectorAll('.gest-fraccio').forEach(cb => { cb.checked = false; cb.disabled = false; });
+    document.querySelectorAll('.gest-quantitat').forEach(inp => inp.value = 1);
+    document.getElementById('btnCancelarEdicio').style.display = 'none';
+    document.getElementById('btnGuardarContenidor').innerHTML = '<i class="fas fa-save"></i> Guardar';
+  });
+
+  document.getElementById('btnGuardarContenidor').addEventListener('click', async () => {
+    const carrer = document.getElementById('gestCarrer').value.trim();
+    const poble = document.getElementById('gestPoble').value;
+    if (!carrer || !poble) { showToast('Carrer i poble obligatoris'); return; }
+    const num = document.getElementById('gestNumero').value.trim();
+    const lat = parseFloat(document.getElementById('gestLat').value) || null;
+    const lng = parseFloat(document.getElementById('gestLng').value) || null;
+    const editId = document.getElementById('gestEditId').value;
+
+    if (editId) {
+      const tipus = [...document.querySelectorAll('.gest-fraccio')].find(cb => cb.checked)?.value;
+      if (!tipus) { showToast('Selecciona una fracció'); return; }
+      await sb.from('contenidors').update({ carrer, num_tancament: num, poble, tipus, lat, lng }).eq('id', editId);
+      showToast('Actualitzat');
+    } else {
+      const fraccionsSeleccionades = [];
+      document.querySelectorAll('.gest-fraccio').forEach((cb, idx) => {
+        if (cb.checked) {
+          const quantitat = parseInt(document.querySelectorAll('.gest-quantitat')[idx].value) || 1;
+          for (let i = 0; i < quantitat; i++) {
+            fraccionsSeleccionades.push(cb.value);
+          }
+        }
+      });
+      if (!fraccionsSeleccionades.length) { showToast('Selecciona almenys una fracció'); return; }
+      for (const tipus of fraccionsSeleccionades) {
+        await sb.from('contenidors').insert([{ carrer, num_tancament: num, poble, tipus, lat, lng, estat_general: 'No fet' }]);
+      }
+      showToast(`${fraccionsSeleccionades.length} contenidor(s) afegit(s)`);
+    }
+    await carregarContenidors();
+    document.getElementById('btnCancelarEdicio').click();
+  });
+
+  // Filtre de poble desplegable a Gestió
+  document.getElementById('filtrePobleSelect').addEventListener('change', aplicarFiltresGestio);
+  function aplicarFiltresGestio() {
+    const poble = document.getElementById('filtrePobleSelect').value;
+    const carrer = document.getElementById('filtreCarrer').value.toLowerCase().trim();
+    const numero = document.getElementById('filtreNumero').value.toLowerCase().trim();
+    const tipus = document.getElementById('filtreTipus').value;
+    const search = document.getElementById('quickSearchGestio').value.toLowerCase().trim();
+    let filtrats = contenidors;
+    if (poble) filtrats = filtrats.filter(c => c.poble === poble);
+    if (carrer) filtrats = filtrats.filter(c => c.carrer.toLowerCase().includes(carrer));
+    if (numero) filtrats = filtrats.filter(c => (c.num_tancament || '').toLowerCase().includes(numero));
+    if (tipus) filtrats = filtrats.filter(c => c.tipus === tipus);
+    if (search) filtrats = filtrats.filter(c => c.carrer.toLowerCase().includes(search) || (c.num_tancament || '').toLowerCase().includes(search) || c.poble.toLowerCase().includes(search));
+    omplirTaulaGestioAmbDades(filtrats);
+  }
+  document.getElementById('btnAplicarFiltres').addEventListener('click', aplicarFiltresGestio);
+  document.getElementById('btnNetejarFiltres').addEventListener('click', () => {
+    document.getElementById('filtrePobleSelect').value = '';
+    document.getElementById('filtreCarrer').value = '';
+    document.getElementById('filtreNumero').value = '';
+    document.getElementById('filtreTipus').value = '';
+    document.getElementById('quickSearchGestio').value = '';
+    aplicarFiltresGestio();
+  });
+  document.getElementById('quickSearchGestio').addEventListener('input', aplicarFiltresGestio);
+
+  // ===================== RUTES DE REFORÇ =====================
+  function carregarRutesReforç() {
+    rutesReforç = JSON.parse(localStorage.getItem('rutes_reforc') || '[]');
+    renderRutesReforç();
+    renderRutesReforçRutes();
+    document.getElementById('infoReforçAdmin').style.display = (currentUserRole === 'admin' && rutesReforç.length === 0) ? 'block' : 'none';
+  }
+  function guardarRutesReforç() { localStorage.setItem('rutes_reforc', JSON.stringify(rutesReforç)); }
+
+  function renderRutesReforç() {
+    const tbody = document.querySelector('#taulaReforc tbody');
+    if (tbody) tbody.innerHTML = rutesReforç.map(r => `<tr>
+      <td>${r.nom}</td>
+      <td><span class="tipus-badge tipus-${r.fraccio.toLowerCase().replace('à','a')}">${r.fraccio}</span></td>
+      <td>${[...new Set(r.carrers.map(c => c.poble))].join(', ')}</td>
+      <td>${r.carrers.length}</td>
+      <td><button class="btn-sm btn-success" onclick="exportarReforçExcel('${r.id}')"><i class="fas fa-file-excel"></i></button></td>
+      <td><button class="btn-sm btn-warning" onclick="exportarReforçPDF('${r.id}')"><i class="fas fa-file-pdf"></i></button></td>
+      <td>
+        <button class="btn-sm btn-secondary" onclick="editarReforç('${r.id}')"><i class="fas fa-edit"></i></button>
+        <button class="btn-sm btn-danger" onclick="eliminarReforç('${r.id}')"><i class="fas fa-trash"></i></button>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="7">Cap ruta</td></tr>';
+  }
+
+  function renderRutesReforçRutes() {
+    const tbody = document.querySelector('#taulaReforcRutes tbody');
+    if (tbody) {
+      tbody.innerHTML = rutesReforç.map(r => `<tr class="fila-reforc" data-id="${r.id}" style="cursor:pointer;">
+        <td><strong>${r.nom}</strong></td>
+        <td><span class="tipus-badge tipus-${r.fraccio.toLowerCase().replace('à','a')}">${r.fraccio}</span></td>
+        <td>${[...new Set(r.carrers.map(c => c.poble))].join(', ')}</td>
+        <td>${r.carrers.length}</td>
+      </tr>`).join('') || '<tr><td colspan="4">Cap ruta</td></tr>';
+    }
+    // Event per mostrar detall amb taula
+    document.querySelectorAll('.fila-reforc').forEach(fila => {
+      fila.addEventListener('click', function() {
+        const id = this.dataset.id;
+        const r = rutesReforç.find(x => x.id === id);
+        if (r) {
+          rutaReforçSeleccionada = r;
+          mostrarDetallReforç(r);
+        }
+      });
+    });
+  }
+
+  function haversineDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)) * 1000;
+  }
+
+  function calcularTemps(punts) {
+    if (!punts.length) return 0;
+    let dist = 0;
+    for (let i = 1; i < punts.length; i++) {
+      dist += haversineDistance(punts[i-1].lat, punts[i-1].lng, punts[i].lat, punts[i].lng);
+    }
+    return Math.round(dist / 500);
+  }
+
+  function mostrarDetallReforç(r) {
+    const detallDiv = document.getElementById('detallReforçSeleccionat');
+    detallDiv.style.display = 'block';
+    // Omplir taula de detall
+    const tbody = document.querySelector('#taulaDetallReforç tbody');
+    tbody.innerHTML = r.carrers.map(c => `<tr><td>${c.poble}</td><td>${c.carrer}</td></tr>`).join('');
+    const temps = calcularTemps(r.carrers.filter(c => c.lat && c.lng));
+    document.getElementById('tempsReforç').innerText = temps + ' min';
+    const selectPoble = document.getElementById('refPobleInici');
+    const poblesUnics = [...new Set(r.carrers.map(c => c.poble))].sort();
+    selectPoble.innerHTML = poblesUnics.map(p => `<option value="${p}">${p}</option>`).join('');
+  }
+
+  // Navegació des del detall
+  document.getElementById('btnReforçObrirMaps').addEventListener('click', () => {
+    if (!rutaReforçSeleccionada) return;
+    const pobleInici = document.getElementById('refPobleInici').value;
+    generarRutaReforç(rutaReforçSeleccionada, pobleInici, 'maps');
+  });
+  document.getElementById('btnReforçStreetView').addEventListener('click', () => {
+    if (!rutaReforçSeleccionada) return;
+    const pobleInici = document.getElementById('refPobleInici').value;
+    generarRutaReforç(rutaReforçSeleccionada, pobleInici, 'streetview');
+  });
+
+  function generarRutaReforç(r, pobleInici, tipus) {
+    let punts = [...r.carrers].filter(c => c.lat && c.lng);
+    if (punts.length < 2) { showToast('Calen coordenades per generar la ruta'); return; }
+    let iniciIndex = punts.findIndex(c => c.poble === pobleInici);
+    if (iniciIndex === -1) iniciIndex = 0;
+    const inici = punts.splice(iniciIndex, 1)[0];
+    const ordenats = [inici];
+    while (punts.length) {
+      let idx = 0, minDist = Infinity;
+      const actual = ordenats[ordenats.length-1];
+      punts.forEach((p, i) => {
+        const d = haversineDistance(actual.lat, actual.lng, p.lat, p.lng);
+        if (d < minDist) { minDist = d; idx = i; }
+      });
+      ordenats.push(punts.splice(idx, 1)[0]);
+    }
+    if (tipus === 'maps') {
+      const origin = `${ordenats[0].lat},${ordenats[0].lng}`;
+      const dest = `${ordenats[ordenats.length-1].lat},${ordenats[ordenats.length-1].lng}`;
+      const waypts = ordenats.length > 2 ? `&waypoints=${ordenats.slice(1,-1).map(c => `${c.lat},${c.lng}`).join('|')}` : '';
+      window.open(`https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}${waypts}&travelmode=driving`, '_blank');
+    } else if (tipus === 'streetview') {
+      obrirStreetView(ordenats[0].lat, ordenats[0].lng);
+    }
+  }
+
+  // Checkboxes de pobles i carrers (gestió)
+  function renderCheckboxesPobles() {
+    document.getElementById('refPoblesCheckboxes').innerHTML = pobles.map(p => `<label><input type="checkbox" value="${p}" class="cb-poble" onchange="actualitzarCheckboxesCarrers()"> ${p}</label>`).join('');
+  }
+  function actualitzarCheckboxesCarrers() {
+    const fraccio = document.getElementById('refFraccio').value;
+    const poblesSel = [...document.querySelectorAll('.cb-poble:checked')].map(cb => cb.value);
+    const container = document.getElementById('refCarrersCheckboxes');
+    if (!fraccio || !poblesSel.length) {
+      container.innerHTML = '<small>Selecciona fracció i pobles</small>';
+      document.getElementById('countCarrersSel').innerText = '0';
+      return;
+    }
+    const carrersUnics = new Map();
+    contenidors.forEach(c => {
+      if (c.tipus === fraccio && poblesSel.includes(c.poble)) {
+        const clau = `${c.poble}|${c.carrer}`;
+        if (!carrersUnics.has(clau)) carrersUnics.set(clau, { poble: c.poble, carrer: c.carrer, lat: c.lat, lng: c.lng });
+      }
+    });
+    if (carrersUnics.size === 0) {
+      container.innerHTML = '<small>No hi ha carrers</small>';
+      document.getElementById('countCarrersSel').innerText = '0';
+      return;
+    }
+    const ordenats = [...carrersUnics.values()].sort((a,b) => a.poble.localeCompare(b.poble) || a.carrer.localeCompare(b.carrer));
+    container.innerHTML = ordenats.map(c => `<label><input type="checkbox" class="cb-carrer" value='${JSON.stringify(c)}' onchange="actualitzarContadorCarrers()"> ${c.carrer} <small>(${c.poble})</small></label>`).join('');
+    document.getElementById('countCarrersSel').innerText = '0';
+  }
+  function actualitzarContadorCarrers() {
+    document.getElementById('countCarrersSel').innerText = document.querySelectorAll('.cb-carrer:checked').length;
+  }
+  document.getElementById('refFraccio').addEventListener('change', actualitzarCheckboxesCarrers);
+  document.getElementById('btnSelAllPobles').addEventListener('click', () => { document.querySelectorAll('.cb-poble').forEach(cb => cb.checked = true); actualitzarCheckboxesCarrers(); });
+  document.getElementById('btnDeselAllPobles').addEventListener('click', () => { document.querySelectorAll('.cb-poble').forEach(cb => cb.checked = false); actualitzarCheckboxesCarrers(); });
+  document.getElementById('btnSelAllCarrers').addEventListener('click', () => { document.querySelectorAll('.cb-carrer').forEach(cb => cb.checked = true); actualitzarContadorCarrers(); });
+  document.getElementById('btnDeselAllCarrers').addEventListener('click', () => { document.querySelectorAll('.cb-carrer').forEach(cb => cb.checked = false); actualitzarContadorCarrers(); });
+
+  // ** CORRECCIÓ DEL BOTÓ GUARDAR RUTA **
+  document.getElementById('btnGuardarReforç').addEventListener('click', () => {
+    console.log('Guardant ruta...');
+    const nom = document.getElementById('refNom').value.trim();
+    const fraccio = document.getElementById('refFraccio').value;
+    const carrersSel = [...document.querySelectorAll('.cb-carrer:checked')].map(cb => JSON.parse(cb.value));
+    if (!nom || !fraccio || !carrersSel.length) {
+      showToast('Omple tots els camps i selecciona almenys un carrer');
+      return;
+    }
+    const editId = document.getElementById('refEditId').value;
+    if (editId) {
+      const idx = rutesReforç.findIndex(r => r.id === editId);
+      if (idx !== -1) {
+        rutesReforç[idx].nom = nom;
+        rutesReforç[idx].fraccio = fraccio;
+        rutesReforç[idx].carrers = carrersSel;
+      }
+      document.getElementById('btnCancelarReforç').style.display = 'none';
+      document.getElementById('btnGuardarReforç').innerHTML = '<i class="fas fa-save"></i> Guardar ruta';
+      document.getElementById('refEditId').value = '';
+    } else {
+      rutesReforç.push({
+        id: Date.now().toString(),
+        nom,
+        fraccio,
+        carrers: carrersSel,
+        data: new Date().toLocaleString()
+      });
+    }
+    guardarRutesReforç();
+    renderRutesReforç();
+    renderRutesReforçRutes();
+    document.getElementById('infoReforçAdmin').style.display = 'none';
+    // Netejar formulari
+    document.getElementById('refNom').value = '';
+    document.getElementById('refFraccio').value = '';
+    document.querySelectorAll('.cb-poble').forEach(cb => cb.checked = false);
+    actualitzarCheckboxesCarrers();
+    showToast('Ruta guardada correctament');
+  });
+
+  document.getElementById('btnCancelarReforç').addEventListener('click', () => {
+    document.getElementById('refEditId').value = '';
+    document.getElementById('refNom').value = '';
+    document.getElementById('refFraccio').value = '';
+    document.querySelectorAll('.cb-poble').forEach(cb => cb.checked = false);
+    actualitzarCheckboxesCarrers();
+    document.getElementById('btnCancelarReforç').style.display = 'none';
+    document.getElementById('btnGuardarReforç').innerHTML = '<i class="fas fa-save"></i> Guardar ruta';
+  });
+
+  window.editarReforç = function(id) {
+    const r = rutesReforç.find(x => x.id === id); if (!r) return;
+    document.getElementById('refNom').value = r.nom;
+    document.getElementById('refFraccio').value = r.fraccio;
+    document.getElementById('refEditId').value = r.id;
+    document.querySelectorAll('.cb-poble').forEach(cb => { cb.checked = r.carrers.some(c => c.poble === cb.value); });
+    actualitzarCheckboxesCarrers();
+    setTimeout(() => {
+      document.querySelectorAll('.cb-carrer').forEach(cb => {
+        const val = JSON.parse(cb.value);
+        cb.checked = r.carrers.some(c => c.poble === val.poble && c.carrer === val.carrer);
+      });
+      actualitzarContadorCarrers();
+    }, 50);
+    document.getElementById('btnCancelarReforç').style.display = 'inline-flex';
+    document.getElementById('btnGuardarReforç').innerHTML = '<i class="fas fa-save"></i> Actualitzar';
+    document.getElementById('refNom').scrollIntoView({ behavior: 'smooth' });
+  };
+  window.eliminarReforç = function(id) {
+    if (!confirm('Eliminar?')) return;
+    rutesReforç = rutesReforç.filter(r => r.id !== id);
+    guardarRutesReforç();
+    renderRutesReforç();
+    renderRutesReforçRutes();
+    document.getElementById('infoReforçAdmin').style.display = (currentUserRole === 'admin' && rutesReforç.length === 0) ? 'block' : 'none';
+  };
+
+  window.exportarReforçExcel = function(id) {
+    const r = rutesReforç.find(x => x.id === id); if (!r) return;
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([['Poble','Carrer','Lat','Lng'], ...r.carrers.map(c => [c.poble, c.carrer, c.lat||'', c.lng||''])]);
+    XLSX.utils.book_append_sheet(wb, ws, r.nom.substring(0,31));
+    XLSX.writeFile(wb, `reforc_${r.nom}.xlsx`);
+  };
+  window.exportarReforçPDF = function(id) {
+    const r = rutesReforç.find(x => x.id === id); if (!r) return;
+    const doc = new jspdf.jsPDF();
+    doc.text(`Ruta: ${r.nom}`, 10, 10);
+    let y = 20;
+    r.carrers.forEach((c,i) => { doc.text(`${i+1}. ${c.carrer} (${c.poble})`, 10, y); y += 7; });
+    doc.save(`reforc_${r.nom}.pdf`);
+  };
+
+  // ===================== USUARIS =====================
+  async function carregarUsuaris() {
+    if (currentUserRole !== 'admin') {
+      document.getElementById('configAdminSection').style.display = 'none';
+      document.getElementById('configNoAdmin').style.display = 'block';
+      return;
+    }
+    document.getElementById('configAdminSection').style.display = 'block';
+    document.getElementById('configNoAdmin').style.display = 'none';
+    const { data } = await sb.from('usuaris_personalitzats').select('*');
+    usuaris = data || [];
+    renderUsuaris();
+  }
+
+  function renderUsuaris() {
+    const tbody = document.querySelector('#taulaUsuaris tbody');
+    if (!tbody) return;
+    tbody.innerHTML = usuaris.map(u => `<tr>
+      <td>${u.nom}</td>
+      <td>${u.display_name || '—'}</td>
+      <td>${u.role}</td>
+      <td>
+        <button class="btn-sm btn-secondary" onclick="editarUsuari('${u.id}')"><i class="fas fa-edit"></i></button>
+        <button class="btn-sm btn-danger" onclick="eliminarUsuari('${u.id}')"><i class="fas fa-trash"></i></button>
+      </td>
+    </tr>`).join('');
+  }
+
+  window.editarUsuari = function(id) {
+    const u = usuaris.find(x => x.id === id);
+    if (!u) return;
+    document.getElementById('nouUserEmail').value = u.nom;
+    document.getElementById('nouUserEmail').disabled = true;
+    document.getElementById('nouUserPass').value = '';
+    document.getElementById('nouDisplayName').value = u.display_name || '';
+    document.getElementById('nouRol').value = u.role;
+    document.getElementById('btnAfegirUsuari').innerHTML = '<i class="fas fa-save"></i> Actualitzar';
+    usuariEditantId = u.id;
+    document.getElementById('formAfegirUsuari').classList.remove('hidden');
+  };
+
+  window.eliminarUsuari = async function(id) {
+    if (!confirm('Eliminar usuari?')) return;
+    await sb.from('usuaris_personalitzats').delete().eq('id', id);
+    carregarUsuaris();
+  };
+
+  document.getElementById('btnMostrarFormUsuari').addEventListener('click', () => {
+    document.getElementById('formAfegirUsuari').classList.remove('hidden');
+    cancelarEdicioUsuari();
+  });
+  document.getElementById('btnCancelarFormUsuari').addEventListener('click', () => {
+    document.getElementById('formAfegirUsuari').classList.add('hidden');
+    cancelarEdicioUsuari();
+  });
+
+  document.getElementById('btnAfegirUsuari').addEventListener('click', async () => {
+    if (currentUserRole !== 'admin') return;
+    const email = document.getElementById('nouUserEmail').value.trim();
+    const pass = document.getElementById('nouUserPass').value.trim();
+    const role = document.getElementById('nouRol').value;
+    const displayName = document.getElementById('nouDisplayName').value.trim();
+    if (!email) { showToast('El correu és obligatori'); return; }
+
+    if (usuariEditantId) {
+      await sb.from('usuaris_personalitzats').update({ role, display_name: displayName || null }).eq('id', usuariEditantId);
+      showToast('Usuari actualitzat');
+      cancelarEdicioUsuari();
+      document.getElementById('formAfegirUsuari').classList.add('hidden');
+      carregarUsuaris();
+    } else {
+      if (!pass) { showToast('Contrasenya obligatòria per a nous usuaris'); return; }
+      const { error } = await sb.auth.signUp({ email, password: pass });
+      if (error) { showToast(error.message); return; }
+      setTimeout(async () => {
+        const { data: u } = await sb.from('usuaris_personalitzats').select('id').eq('nom', email).single();
+        if (u) {
+          await sb.from('usuaris_personalitzats').update({ role, display_name: displayName || null }).eq('id', u.id);
+        } else {
+          showToast('Usuari creat, però cal assignar rol manualment si no es veu.');
+        }
+        carregarUsuaris();
+        cancelarEdicioUsuari();
+        document.getElementById('formAfegirUsuari').classList.add('hidden');
+      }, 2000);
+    }
+  });
+
+  function cancelarEdicioUsuari() {
+    document.getElementById('nouUserEmail').value = '';
+    document.getElementById('nouUserEmail').disabled = false;
+    document.getElementById('nouUserPass').value = '';
+    document.getElementById('nouDisplayName').value = '';
+    document.getElementById('nouRol').value = 'operari';
+    document.getElementById('btnAfegirUsuari').innerHTML = '<i class="fas fa-plus"></i> Afegir';
+    usuariEditantId = null;
+  }
+
+  // ===================== DADES EXEMPLE =====================
+  async function carregarExemples() {
+    if (currentUserRole !== 'admin') return;
+    if (!confirm('Esborrar tot i carregar exemples amb més de 400 contenidors?')) return;
+
+    const progress = document.createElement('div');
+    progress.style = 'position:fixed; top:10px; left:50%; transform:translateX(-50%); background:var(--primary); color:white; padding:12px 24px; border-radius:40px; z-index:9999;';
+    progress.innerText = 'Esborrant dades anteriors...';
+    document.body.appendChild(progress);
+
+    try {
+      const { data: toDelete, error: delError } = await sb.from('contenidors').select('id');
+      if (delError) throw delError;
+      if (toDelete?.length) {
+        const ids = toDelete.map(r => r.id);
+        const { error: batchError } = await sb.from('contenidors').delete().in('id', ids);
+        if (batchError) throw batchError;
+      }
+
+      const carrersReals = {
+        "Sallent": ["Major","Sant Antoni","Barcelona","Mossèn Cinto","Prat de la Riba","Progrés","Escorxador","Sant Joan","Santa Anna","Torras i Bages"],
+        "Balsareny": ["Major","Nou","Baixada de l'Estació","Pau Casals","Sant Vicenç","Font de la Riera","Carretera de Suria","Roger de Flor","Sant Marc","Portal de la Font"],
+        "Pont de Vilomara": ["del Pont","Major","Sant Pere","Nou","Sant Joan","Sant Roc","de la Creu","de l'Església","de la Font","de la Pau"],
+        "Mura": ["Major","de l'Església","del Molí","de la Font","de la Vinya","del Puig","de les Roques","de Sant Antoni","de la Rectoria","del Castell"],
+        "Talamanca": ["Major","de la Creu","de la Font","de l'Església","del Castell","de les Roques","de la Riera","de la Pujada","del Sol","de la Llum"],
+        "Aguilar de Segarra": ["Major","de la Font","de l'Església","del Pou","del Racó","de la Plaça","de les Escoles","de la Rectoria","de la Creu","de la Cooperativa"],
+        "Rajadell": ["Major","del Castell","de l'Església","de la Font","de les Piscines","de la Riera","del Cementiri","de les Escoles","del Molí","de la Creu"],
+        "Fonollosa": ["Major","de la Pau","de les Escoles","de la Font","del Castell","de la Riera","de Sant Miquel","de la Creu","del Sol","de l'Església"],
+        "Castellnou de Bages": ["Major","Nou","de l'Església","del Castell","de la Font","de les Escoles","de la Creu","de la Riera","de Sant Joan","del Padró"],
+        "Monistrol de Montserrat": ["Montserrat","Abat Oliba","de l'Estació","de les Escoles","Prat de la Riba","de la Santa Cova","de la Font Gran","de la Vinya","del Puig","de la Riera"],
+        "Castellgalí": ["Major","de la Indústria","de la Font","de les Escoles","de la Riera","del Pont","de la Creu","de la Cooperativa","de Sant Miquel","del Molí"],
+        "Callús": ["Major","del Sol","de les Escoles","de la Font","de la Riera","de l'Església","de la Creu","del Castell","de la Cooperativa","de la Pau"],
+        "Sant Mateu de Bages": ["Major","de la Rectoria","de l'Església","de la Font","del Castell","de les Escoles","de la Creu","de la Riera","del Sol","de la Cooperativa"]
+      };
+
+      const fraccionsDisponibles = ["Orgànica","Resta","Envasos","Paper","Vidre"];
+      let inserits = 0;
+      for (const [poble, carrers] of Object.entries(carrersReals)) {
+        for (let i = 0; i < carrers.length; i++) {
+          const carrer = carrers[i];
+          const numFraccions = Math.floor(Math.random() * 4) + 2;
+          const fraccionsBarrejades = [...fraccionsDisponibles].sort(() => 0.5 - Math.random()).slice(0, numFraccions);
+          for (const tipus of fraccionsBarrejades) {
+            const latBase = 41.7 + Math.random() * 0.15 + (Math.random() - 0.5) * 0.01;
+            const lngBase = 1.7 + Math.random() * 0.3 + (Math.random() - 0.5) * 0.01;
+            const { error } = await sb.from('contenidors').insert([{
+              carrer,
+              num_tancament: (Math.floor(Math.random() * 50) + 1).toString(),
+              poble,
+              tipus,
+              lat: latBase,
+              lng: lngBase,
+              estat_general: 'No fet'
+            }]);
+            if (error) throw error;
+            inserits++;
+            progress.innerText = `Carregant... ${inserits} contenidors`;
+          }
+        }
+      }
+
+      rutesReforç = [
+        { id: 'ex1', nom: 'Reforç 1 – Resta Sallent', fraccio: 'Resta', carrers: [
+          { poble: 'Sallent', carrer: 'Major', lat: 41.8245, lng: 1.8950 },
+          { poble: 'Sallent', carrer: 'Barcelona', lat: 41.8230, lng: 1.8930 }
+        ]},
+        { id: 'ex2', nom: 'Reforç 2 – Paper Balsareny', fraccio: 'Paper', carrers: [
+          { poble: 'Balsareny', carrer: 'Major', lat: 41.8619, lng: 1.8772 },
+          { poble: 'Balsareny', carrer: 'Sant Vicenç', lat: 41.8625, lng: 1.8765 }
+        ]}
+      ];
+      guardarRutesReforç();
+
+      await carregarContenidors();
+      carregarRutesReforç();
+      progress.innerText = `Fet! ${inserits} contenidors carregats.`;
+      setTimeout(() => progress.remove(), 3000);
+      showToast(`${inserits} contenidors carregats (+ rutes de reforç)`);
+    } catch (err) {
+      progress.innerText = 'Error: ' + err.message;
+      setTimeout(() => progress.remove(), 5000);
+      showToast('Error carregant exemples: ' + err.message);
+      console.error(err);
+    }
+  }
+
+  document.getElementById('btnCarregarExemple').addEventListener('click', carregarExemples);
+
+  // ===================== ALTRES =====================
+  function showToast(msg) {
+    const t = document.createElement('div'); t.className = 'toast'; t.innerText = msg;
+    document.body.appendChild(t); setTimeout(() => t.remove(), 3000);
+  }
+
+  // Planificació
+  document.getElementById('btnGenerarEnllacRapid').addEventListener('click', () => {
+    const poble = document.getElementById('rutaPobleSelect').value;
+    const fraccio = document.getElementById('rutaRapidaFraccio').value;
+    if (!poble) { showToast('Selecciona un poble'); return; }
+    let pendents = contenidors.filter(c => c.lat && c.lng && c.estat_general === 'No fet' && c.poble === poble);
+    if (fraccio) pendents = pendents.filter(c => c.tipus === fraccio);
+    if (pendents.length < 2) { showToast('Calen almenys 2 contenidors pendents'); return; }
+    let ruta = [...pendents], actual = { lat: ruta[0].lat, lng: ruta[0].lng }, nova = [];
+    while (ruta.length) {
+      let idx = 0, minDist = Infinity;
+      ruta.forEach((p, i) => {
+        const d = haversineDistance(actual.lat, actual.lng, p.lat, p.lng);
+        if (d < minDist) { minDist = d; idx = i; }
+      });
+      nova.push(ruta[idx]);
+      actual = { lat: ruta[idx].lat, lng: ruta[idx].lng };
+      ruta.splice(idx, 1);
+    }
+    const origin = `${nova[0].lat},${nova[0].lng}`;
+    const dest = `${nova[nova.length-1].lat},${nova[nova.length-1].lng}`;
+    const waypts = nova.length > 2 ? `&waypoints=${nova.slice(1,-1).map(c => `${c.lat},${c.lng}`).join('|')}` : '';
+    window.open(`https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}${waypts}&travelmode=driving`, '_blank');
+    document.getElementById('rutaTempsEstimat').innerText = calcularTemps(nova) + ' min';
+  });
+
+  document.getElementById('btnMarcarRutaFeta').addEventListener('click', async () => {
+    const poble = document.getElementById('rutaPobleSelect').value;
+    const fraccio = document.getElementById('rutaRapidaFraccio').value;
+    if (!poble) { showToast('Selecciona un poble'); return; }
+    let pendents = contenidors.filter(c => c.estat_general === 'No fet' && c.poble === poble);
+    if (fraccio) pendents = pendents.filter(c => c.tipus === fraccio);
+    if (!pendents.length) { showToast('No hi ha contenidors pendents'); return; }
+    if (!confirm(`Marcar ${pendents.length} contenidors com a fets?`)) return;
+    for (let c of pendents) {
+      await sb.from('contenidors').update({ estat_general: 'Fet' }).eq('id', c.id);
+    }
+    await carregarContenidors();
+    showToast(`Ruta marcada: ${pendents.length} contenidors fets`);
+  });
+
+  // Comentaris
+  function getComentaris() { return JSON.parse(localStorage.getItem('comentaris_per_poble') || '{}'); }
+  function saveComentaris(obj) { localStorage.setItem('comentaris_per_poble', JSON.stringify(obj)); }
+  function mostrarComentaris(poble) {
+    const llista = document.getElementById('llistaComentaris');
+    if (!llista) return;
+    const comentaris = (getComentaris()[poble] || []).slice(-10).reverse();
+    llista.innerHTML = comentaris.length ? comentaris.map(c => `<div style="padding:6px;border-bottom:1px solid #ddd;"><small>${c.data}</small> – <strong>${c.usuari}</strong><br>${c.text}</div>`).join('') : '<p>Sense comentaris</p>';
+  }
+  document.getElementById('comentariPobleSelect').addEventListener('change', function() { mostrarComentaris(this.value); });
+  document.getElementById('btnGuardarComentari').addEventListener('click', () => {
+    const poble = document.getElementById('comentariPobleSelect').value;
+    const text = document.getElementById('comentariRuta').value.trim();
+    if (!poble || !text) { showToast('Falta poble o text'); return; }
+    const obj = getComentaris();
+    if (!obj[poble]) obj[poble] = [];
+    obj[poble].push({ id: Date.now(), data: new Date().toLocaleString(), usuari: currentUser, text });
+    saveComentaris(obj);
+    document.getElementById('comentariRuta').value = '';
+    mostrarComentaris(poble);
+  });
+
+  // Informe PDF global
+  document.getElementById('btnInformePDF').addEventListener('click', () => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text('Informe de contenidors i rutes', 10, 20);
+    const resum = {};
+    contenidors.forEach(c => {
+      const clau = `${c.poble}|${c.tipus}`;
+      resum[clau] = (resum[clau] || 0) + 1;
+    });
+    let y = 30;
+    doc.setFontSize(12);
+    doc.text('Contenidors per poble i fracció:', 10, y);
+    y += 7;
+    Object.entries(resum).forEach(([clau, quantitat]) => {
+      const [poble, tipus] = clau.split('|');
+      doc.text(`- ${poble} (${tipus}): ${quantitat}`, 14, y);
+      y += 6;
+    });
+    y += 5;
+    doc.text('Rutes de reforç:', 10, y);
+    y += 7;
+    rutesReforç.forEach(r => {
+      doc.text(`${r.nom} (${r.fraccio}) - ${r.carrers.length} carrers`, 14, y);
+      y += 6;
+    });
+    doc.save('informe_complet.pdf');
+  });
+
+  // Exportació per pobles (gestió)
+  document.getElementById('btnExportarPerPoblesExcel').addEventListener('click', () => {
+    const agrupats = {};
+    contenidors.forEach(c => {
+      if (!agrupats[c.poble]) agrupats[c.poble] = [];
+      agrupats[c.poble].push([c.carrer, c.num_tancament||'', c.tipus, c.lat||'', c.lng||'']);
+    });
+    const wb = XLSX.utils.book_new();
+    Object.entries(agrupats).forEach(([poble, files]) => {
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Carrer','Número','Tipus','Lat','Lng'], ...files]), poble.substring(0,31));
+    });
+    XLSX.writeFile(wb, 'contenidors_per_pobles.xlsx');
+  });
+  document.getElementById('btnExportarPerPoblesPDF').addEventListener('click', () => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const agrupats = {};
+    contenidors.forEach(c => {
+      if (!agrupats[c.poble]) agrupats[c.poble] = [];
+      agrupats[c.poble].push(c);
+    });
+    let y = 20;
+    doc.setFontSize(16);
+    doc.text('Contenidors per pobles', 10, y);
+    y += 10;
+    Object.entries(agrupats).forEach(([poble, contenidorsPoble]) => {
+      if (y > 270) { doc.addPage(); y = 20; }
+      doc.setFontSize(14);
+      doc.text(`${poble} (${contenidorsPoble.length})`, 10, y);
+      y += 7;
+      doc.setFontSize(10);
+      contenidorsPoble.forEach(c => {
+        if (y > 270) { doc.addPage(); y = 20; }
+        doc.text(`- ${c.carrer} ${c.num_tancament||''} (${c.tipus})`, 14, y);
+        y += 5;
+      });
+      y += 4;
+    });
+    doc.save('contenidors_per_pobles.pdf');
+  });
+
+  // Plantilles
+  document.getElementById('btnPlantillaRutes').addEventListener('click', () => {
+    const wb = XLSX.utils.book_new();
+    pobles.forEach(p => { XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Carrer','Numero','Tipus','Lat','Lng']]), p.substring(0,31)); });
+    XLSX.writeFile(wb, 'plantilla_rutes.xlsx');
+  });
+  document.getElementById('btnExportarDades').addEventListener('click', () => {
+    if (!contenidors.length) { showToast('No hi ha dades'); return; }
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([['Carrer','Numero','Tipus','Poble','Lat','Lng'], ...contenidors.map(c => [c.carrer, c.num_tancament||'', c.tipus, c.poble, c.lat||'', c.lng||''])]);
+    XLSX.utils.book_append_sheet(wb, ws, 'Contenidors');
+    XLSX.writeFile(wb, 'exportacio_contenidors.xlsx');
+  });
+  document.getElementById('btnImportarRutes').addEventListener('click', ()=> document.getElementById('fileImportRutes').click());
+  document.getElementById('fileImportRutes').addEventListener('change', async (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    const data = await file.arrayBuffer();
+    const wb = XLSX.read(data);
+    let importats = 0;
+    for (const full of wb.SheetNames) {
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[full]);
+      for (const r of rows) {
+        if (!r.Carrer || !r.Tipus) continue;
+        await sb.from('contenidors').insert([{
+          carrer: r.Carrer,
+          num_tancament: r.Numero?.toString() || '',
+          tipus: r.Tipus,
+          poble: r.Poble || full,
+          lat: parseFloat(r.Lat) || null,
+          lng: parseFloat(r.Lng) || null,
+          estat_general: 'No fet'
+        }]);
+        importats++;
+      }
+    }
+    showToast(`${importats} contenidors importats`);
+    await carregarContenidors();
+    e.target.value = '';
+  });
+
+  // ===================== INICIALITZACIÓ =====================
+  function inicialitzarApp() {
+    carregarPobles();
+    omplirSelectsPobles();
+    renderPoblesConfig();
+    renderCheckboxesPobles();
+    renderFraccionsQuantitats();
+    carregarContenidors();
+    carregarUsuaris();
+    carregarRutesReforç();
+  }
+
+  carregarPobles();
+  omplirSelectsPobles();
+  renderPoblesConfig();
+  renderCheckboxesPobles();
+  renderFraccionsQuantitats();
+  carregarRutesReforç();
+
+  (async () => {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+      currentUser = session.user.email;
+      const { data: perfil } = await sb.from('usuaris_personalitzats').select('role,display_name').eq('user_id', session.user.id).single();
+      currentUserRole = perfil?.role || 'operari';
+      currentUserDisplayName = perfil?.display_name || currentUser;
+      if (currentUser === 'provama@provama.com' && currentUserRole !== 'admin') {
+        currentUserRole = 'admin';
+        if (perfil) await sb.from('usuaris_personalitzats').update({ role: 'admin' }).eq('user_id', session.user.id);
+        else await sb.from('usuaris_personalitzats').insert([{ user_id: session.user.id, nom: currentUser, role: 'admin' }]);
+      }
+      tancarLogin();
+    }
+  })();
+</script>
+</body>
+</html>

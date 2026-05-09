@@ -4,12 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
   <title>LOGO Rutes - Sistema de Gestió</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     * {
       margin: 0;
@@ -21,7 +20,6 @@
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       min-height: 100vh;
-      padding: 20px;
     }
 
     /* Login */
@@ -51,7 +49,7 @@
 
     .login-card h2 {
       color: #4a5568;
-      margin-bottom: 30px;
+      margin: 20px 0;
     }
 
     .login-card input {
@@ -104,6 +102,8 @@
       margin-bottom: 20px;
       padding-bottom: 20px;
       border-bottom: 2px solid #e2e8f0;
+      flex-wrap: wrap;
+      gap: 15px;
     }
 
     .logo h1 {
@@ -119,6 +119,7 @@
       display: flex;
       align-items: center;
       gap: 15px;
+      flex-wrap: wrap;
     }
 
     .badge {
@@ -146,6 +147,7 @@
       margin-bottom: 20px;
       border-bottom: 2px solid #e2e8f0;
       padding-bottom: 10px;
+      flex-wrap: wrap;
     }
 
     .tab {
@@ -231,6 +233,11 @@
       color: white;
     }
 
+    .btn-secondary {
+      background: #64748b;
+      color: white;
+    }
+
     input, select, textarea {
       width: 100%;
       padding: 10px;
@@ -243,10 +250,12 @@
       display: flex;
       gap: 10px;
       margin-bottom: 10px;
+      flex-wrap: wrap;
     }
 
     .form-row > * {
       flex: 1;
+      min-width: 150px;
     }
 
     .stats-grid {
@@ -279,7 +288,7 @@
     }
 
     #map {
-      height: 400px;
+      height: 450px;
       border-radius: 15px;
       margin-top: 20px;
     }
@@ -309,6 +318,32 @@
       90% { opacity: 1; transform: translateY(0); }
       100% { opacity: 0; transform: translateY(20px); }
     }
+
+    .tipus-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: bold;
+      color: white;
+    }
+
+    .tipus-organica { background: #8B4513; }
+    .tipus-resta { background: #1a1a1a; }
+    .tipus-envasos { background: #fbbf24; color: #1e3a8a; }
+    .tipus-paper { background: #3b82f6; }
+    .tipus-vidre { background: #22c55e; }
+
+    .estat-pendent { background: #f59e0b; }
+    .estat-completada { background: #10b981; }
+
+    @media (max-width: 768px) {
+      .app-container { padding: 15px; }
+      .tab { padding: 8px 12px; font-size: 14px; }
+      th, td { padding: 8px; font-size: 12px; }
+      .form-row { flex-direction: column; }
+      .form-row > * { min-width: auto; }
+    }
   </style>
 </head>
 <body>
@@ -324,8 +359,7 @@
     <button id="loginBtn">Iniciar Sessió</button>
     <div id="loginError" class="error-msg"></div>
     <p style="margin-top: 20px; font-size: 12px; color: #999;">
-      Usuari: admin@logo.com<br>
-      Contrasenya: admin123
+      👑 Admin: admin@logo.com / admin123
     </p>
   </div>
 </div>
@@ -374,12 +408,12 @@
       <div class="stat-card">
         <i class="fas fa-users" style="color: #3b82f6;"></i>
         <h2 id="totalUsuaris">0</h2>
-        <p>Usuaris Actius</p>
+        <p>Usuaris</p>
       </div>
     </div>
     <div class="card">
       <h3>Resum per Poble</h3>
-      <div class="table-wrapper">
+      <div style="overflow-x: auto;">
         <table id="resumTable">
           <thead>
             <tr><th>Poble</th><th>Total</th><th>Completats</th><th>Pendents</th><th>Progrés</th></tr>
@@ -395,15 +429,15 @@
     <div class="card">
       <h3><i class="fas fa-plus-circle"></i> Afegir Contenidor</h3>
       <div class="form-row">
-        <input type="text" id="carrer" placeholder="Carrer">
+        <input type="text" id="carrer" placeholder="Carrer *">
         <input type="text" id="numero" placeholder="Número">
       </div>
       <div class="form-row">
         <select id="poble">
-          <option value="">Selecciona Poble</option>
+          <option value="">Selecciona Poble *</option>
         </select>
         <select id="tipus">
-          <option value="">Selecciona Tipus</option>
+          <option value="">Selecciona Tipus *</option>
           <option value="Orgànica">Orgànica</option>
           <option value="Resta">Resta</option>
           <option value="Envasos">Envasos</option>
@@ -435,9 +469,14 @@
           <option value="Paper">Paper</option>
           <option value="Vidre">Vidre</option>
         </select>
+        <select id="filtreEstat">
+          <option value="">Tots els estats</option>
+          <option value="Pendent">Pendent</option>
+          <option value="Completada">Completada</option>
+        </select>
         <input type="text" id="searchInput" placeholder="Cercar per carrer...">
       </div>
-      <div class="table-wrapper">
+      <div style="overflow-x: auto;">
         <table id="contenidorsTable">
           <thead>
             <tr><th>Carrer</th><th>Número</th><th>Poble</th><th>Tipus</th><th>Estat</th><th>Accions</th></tr>
@@ -471,7 +510,7 @@
           <option value="Completada">Completada</option>
         </select>
       </div>
-      <div class="table-wrapper">
+      <div style="overflow-x: auto;">
         <table id="rutesTable">
           <thead>
             <tr><th>Carrer</th><th>Número</th><th>Poble</th><th>Tipus</th><th>Estat</th><th>Accions</th></tr>
@@ -509,12 +548,12 @@
     <div class="card">
       <h3><i class="fas fa-user-plus"></i> Afegir Conductor</h3>
       <div class="form-row">
-        <input type="email" id="userEmail" placeholder="Email del conductor">
-        <input type="text" id="userName" placeholder="Nom del conductor">
+        <input type="text" id="userNameInput" placeholder="Nom del conductor">
+        <input type="email" id="userEmailInput" placeholder="Email del conductor">
       </div>
       <div class="form-row">
-        <input type="password" id="userPassword" placeholder="Contrasenya">
-        <select id="userRole">
+        <input type="password" id="userPasswordInput" placeholder="Contrasenya">
+        <select id="userRoleSelect">
           <option value="operari">Conductor</option>
           <option value="admin">Administrador</option>
         </select>
@@ -524,7 +563,7 @@
 
     <div class="card">
       <h3>Llista de Conductors</h3>
-      <div class="table-wrapper">
+      <div style="overflow-x: auto;">
         <table id="usuarisTable">
           <thead>
             <tr><th>Nom</th><th>Email</th><th>Rol</th><th>Accions</th></tr>
@@ -539,20 +578,18 @@
   <div id="config" class="tab-content">
     <div class="card">
       <h3><i class="fas fa-database"></i> Gestió de Dades</h3>
-      <button id="loadSampleDataBtn" class="btn-sm btn-warning"><i class="fas fa-database"></i> Carregar Dades d'Exemple</button>
-      <button id="exportExcelBtn" class="btn-sm btn-success"><i class="fas fa-file-excel"></i> Exportar a Excel</button>
-      <button id="exportPDFBtn" class="btn-sm btn-danger"><i class="fas fa-file-pdf"></i> Exportar a PDF</button>
-      <button id="clearDataBtn" class="btn-sm btn-secondary"><i class="fas fa-trash"></i> Netejar Dades</button>
+      <div class="form-row">
+        <button id="loadSampleDataBtn" class="btn-sm btn-warning"><i class="fas fa-database"></i> Carregar Dades d'Exemple</button>
+        <button id="exportExcelBtn" class="btn-sm btn-success"><i class="fas fa-file-excel"></i> Exportar a Excel</button>
+        <button id="exportPDFBtn" class="btn-sm btn-danger"><i class="fas fa-file-pdf"></i> Exportar a PDF</button>
+        <button id="clearDataBtn" class="btn-sm btn-secondary"><i class="fas fa-trash"></i> Netejar Dades</button>
+      </div>
     </div>
   </div>
 </div>
 
 <script>
-  // Configuració de Supabase
-  const SUPABASE_URL = 'https://pcvwtcvzshwfyzsiudoy.supabase.co';
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBjdnd0Y3Z6c2h3Znl6c2l1ZG95Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5OTgwOTAsImV4cCI6MjA5MzU3NDA5MH0.JOV-8eC7StFs4mUiHkQ4I90d3CJruYvSicJDAswzemE';
-  
-  let supabase;
+  // ==================== GESTIÓ D'USUARIS ====================
   let currentUser = null;
   let contenidors = [];
   let usuaris = [];
@@ -561,9 +598,43 @@
   let map = null;
   let markers = [];
 
-  // Inicialitzar Supabase
-  function initSupabase() {
-    supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // Credencials admin per defecte
+  const ADMIN_USER = {
+    id: 'admin1',
+    nom: 'admin@logo.com',
+    display_name: 'Administrador',
+    password: 'admin123',
+    role: 'admin'
+  };
+
+  // Inicialitzar dades
+  function initData() {
+    // Carregar usuaris
+    const storedUsers = localStorage.getItem('logo_users');
+    if (storedUsers) {
+      usuaris = JSON.parse(storedUsers);
+    } else {
+      usuaris = [ADMIN_USER];
+      localStorage.setItem('logo_users', JSON.stringify(usuaris));
+    }
+
+    // Carregar contenidors
+    const storedContenidors = localStorage.getItem('logo_contenidors');
+    if (storedContenidors) {
+      contenidors = JSON.parse(storedContenidors);
+    } else {
+      contenidors = [];
+      localStorage.setItem('logo_contenidors', JSON.stringify(contenidors));
+    }
+  }
+
+  // Guardar dades
+  function saveContenidors() {
+    localStorage.setItem('logo_contenidors', JSON.stringify(contenidors));
+  }
+
+  function saveUsuaris() {
+    localStorage.setItem('logo_users', JSON.stringify(usuaris));
   }
 
   // Mostrar missatge
@@ -575,8 +646,8 @@
     setTimeout(() => toast.remove(), 3000);
   }
 
-  // Login
-  async function login() {
+  // ==================== LOGIN ====================
+  function login() {
     const email = document.getElementById('loginEmail').value.trim();
     const password = document.getElementById('loginPassword').value.trim();
 
@@ -585,70 +656,36 @@
       return;
     }
 
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: password
-      });
+    const user = usuaris.find(u => u.nom === email && u.password === password);
 
-      if (error) {
-        if (error.message.includes('Invalid login')) {
-          // Crear usuari admin per defecte
-          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-            email: 'admin@logo.com',
-            password: 'admin123'
-          });
-          
-          if (signUpError) throw signUpError;
-          
-          // Crear perfil d'admin
-          await supabase.from('usuaris_personalitzats').insert([{
-            user_id: signUpData.user.id,
-            nom: 'admin@logo.com',
-            display_name: 'Administrador',
-            role: 'admin'
-          }]);
-          
-          showToast('Usuari admin creat. Prova d\'iniciar sessió de nou.');
-        } else {
-          throw error;
-        }
-        return;
-      }
-
-      // Verificar si l'usuari és admin
-      const { data: perfil, error: perfilError } = await supabase
-        .from('usuaris_personalitzats')
-        .select('*')
-        .eq('user_id', data.user.id)
-        .single();
-
-      if (perfilError || perfil.role !== 'admin') {
-        await supabase.auth.signOut();
-        document.getElementById('loginError').textContent = 'Accés denegat. Només administradors.';
-        return;
-      }
-
-      currentUser = perfil;
-      document.getElementById('loginScreen').style.display = 'none';
-      document.getElementById('appContainer').style.display = 'block';
-      document.getElementById('userName').textContent = perfil.display_name || 'Administrador';
-      
-      // Carregar dades
-      await loadContenidors();
-      await loadUsuaris();
-      loadPoblesSelect();
-      updateDashboard();
-      
-      showToast('Benvingut al sistema!');
-    } catch (error) {
-      document.getElementById('loginError').textContent = error.message;
+    if (!user) {
+      document.getElementById('loginError').textContent = 'Credencials incorrectes';
+      return;
     }
+
+    if (user.role !== 'admin') {
+      document.getElementById('loginError').textContent = 'Accés denegat. Només administradors.';
+      return;
+    }
+
+    currentUser = user;
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('appContainer').style.display = 'block';
+    document.getElementById('userName').textContent = user.display_name || user.nom.split('@')[0];
+
+    // Carregar dades
+    loadPoblesSelect();
+    renderContenidorsTable();
+    renderRutesTable();
+    updateDashboard();
+    renderUsuarisTable();
+    initMap();
+    updateMap();
+
+    showToast('Benvingut al sistema!');
   }
 
-  // Tancar sessió
-  async function logout() {
-    await supabase.auth.signOut();
+  function logout() {
     currentUser = null;
     document.getElementById('loginScreen').style.display = 'flex';
     document.getElementById('appContainer').style.display = 'none';
@@ -657,38 +694,20 @@
     document.getElementById('loginError').textContent = '';
   }
 
-  // Carregar contenidors
-  async function loadContenidors() {
-    const { data, error } = await supabase
-      .from('contenidors')
-      .select('*')
-      .order('poble', { ascending: true })
-      .order('carrer', { ascending: true });
-
-    if (error) {
-      showToast('Error carregant contenidors', 'error');
-      return;
-    }
-
-    contenidors = data || [];
-    renderContenidorsTable();
-    renderRutesTable();
-    updateDashboard();
-    updateMap();
-  }
-
-  // Renderitzar taula de contenidors
+  // ==================== CONTENIDORS ====================
   function renderContenidorsTable() {
     const tbody = document.querySelector('#contenidorsTable tbody');
     if (!tbody) return;
 
     const poble = document.getElementById('filtrePoble').value;
     const tipus = document.getElementById('filtreTipus').value;
+    const estat = document.getElementById('filtreEstat').value;
     const search = document.getElementById('searchInput').value.toLowerCase();
 
     let filtered = [...contenidors];
     if (poble) filtered = filtered.filter(c => c.poble === poble);
     if (tipus) filtered = filtered.filter(c => c.tipus === tipus);
+    if (estat) filtered = filtered.filter(c => (c.estat || 'Pendent') === estat);
     if (search) filtered = filtered.filter(c => c.carrer.toLowerCase().includes(search));
 
     const start = (currentPage - 1) * itemsPerPage;
@@ -700,23 +719,22 @@
         <td>${c.carrer}</td>
         <td>${c.num_tancament || '-'}</td>
         <td>${c.poble}</td>
-        <td><span class="badge" style="background:${getTipusColor(c.tipus)}">${c.tipus}</span></td>
-        <td><span class="badge" style="background:${c.estat === 'Completada' ? '#10b981' : '#f59e0b'}">${c.estat || 'Pendent'}</span></td>
+        <td><span class="tipus-badge tipus-${c.tipus.toLowerCase().replace('à', 'a')}">${c.tipus}</span></td>
+        <td><span class="tipus-badge ${c.estat === 'Completada' ? 'estat-completada' : 'estat-pendent'}">${c.estat || 'Pendent'}</span></td>
         <td>
           <button class="btn-sm btn-info" onclick="editContenidor(${c.id})"><i class="fas fa-edit"></i></button>
           <button class="btn-sm btn-danger" onclick="deleteContenidor(${c.id})"><i class="fas fa-trash"></i></button>
-          <button class="btn-sm btn-success" onclick="toggleEstat(${c.id}, '${c.estat}')"><i class="fas fa-check"></i></button>
+          <button class="btn-sm btn-success" onclick="toggleEstat(${c.id})"><i class="fas fa-check"></i></button>
         </td>
       </tr>
     `).join('');
 
-    // Paginació
     const pagination = document.getElementById('pagination');
     if (pagination) {
       pagination.innerHTML = `
-        <button class="btn-sm" onclick="changePage(-1)" ${currentPage === 1 ? 'disabled' : ''}>Anterior</button>
+        <button class="btn-sm btn-secondary" onclick="changePage(-1)" ${currentPage === 1 ? 'disabled' : ''}>Anterior</button>
         <span>Pàgina ${currentPage} de ${totalPages || 1}</span>
-        <button class="btn-sm" onclick="changePage(1)" ${currentPage === totalPages || totalPages === 0 ? 'disabled' : ''}>Següent</button>
+        <button class="btn-sm btn-secondary" onclick="changePage(1)" ${currentPage === totalPages || totalPages === 0 ? 'disabled' : ''}>Següent</button>
       `;
     }
   }
@@ -726,7 +744,6 @@
     renderContenidorsTable();
   }
 
-  // Renderitzar taula de rutes
   function renderRutesTable() {
     const tbody = document.querySelector('#rutesTable tbody');
     if (!tbody) return;
@@ -745,33 +762,29 @@
         <td>${c.carrer}</td>
         <td>${c.num_tancament || '-'}</td>
         <td>${c.poble}</td>
-        <td><span class="badge" style="background:${getTipusColor(c.tipus)}">${c.tipus}</span></td>
-        <td><span class="badge" style="background:${c.estat === 'Completada' ? '#10b981' : '#f59e0b'}">${c.estat || 'Pendent'}</span></td>
+        <td><span class="tipus-badge tipus-${c.tipus.toLowerCase().replace('à', 'a')}">${c.tipus}</span></td>
+        <td><span class="tipus-badge ${c.estat === 'Completada' ? 'estat-completada' : 'estat-pendent'}">${c.estat || 'Pendent'}</span></td>
         <td>
-          <button class="btn-sm btn-success" onclick="toggleEstat(${c.id}, '${c.estat}')"><i class="fas fa-check"></i> Marcar</button>
+          <button class="btn-sm btn-success" onclick="toggleEstat(${c.id})"><i class="fas fa-check"></i> Marcar</button>
         </td>
       </tr>
     `).join('');
   }
 
-  // Canviar estat
-  window.toggleEstat = async (id, estatActual) => {
-    const nouEstat = estatActual === 'Completada' ? 'Pendent' : 'Completada';
-    const { error } = await supabase
-      .from('contenidors')
-      .update({ estat: nouEstat })
-      .eq('id', id);
-
-    if (error) {
-      showToast('Error actualitzant estat', 'error');
-      return;
+  window.toggleEstat = (id) => {
+    const index = contenidors.findIndex(c => c.id === id);
+    if (index !== -1) {
+      const nouEstat = contenidors[index].estat === 'Completada' ? 'Pendent' : 'Completada';
+      contenidors[index].estat = nouEstat;
+      saveContenidors();
+      renderContenidorsTable();
+      renderRutesTable();
+      updateDashboard();
+      updateMap();
+      showToast(`Ruta marcada com a ${nouEstat}`);
     }
-
-    showToast(`Ruta marcada com a ${nouEstat}`);
-    await loadContenidors();
   };
 
-  // Editar contenidor
   window.editContenidor = (id) => {
     const contenidor = contenidors.find(c => c.id === id);
     if (!contenidor) return;
@@ -789,26 +802,20 @@
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Eliminar contenidor
-  window.deleteContenidor = async (id) => {
+  window.deleteContenidor = (id) => {
     if (!confirm('Estàs segur d\'eliminar aquest contenidor?')) return;
 
-    const { error } = await supabase
-      .from('contenidors')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      showToast('Error eliminant contenidor', 'error');
-      return;
-    }
-
+    contenidors = contenidors.filter(c => c.id !== id);
+    saveContenidors();
+    renderContenidorsTable();
+    renderRutesTable();
+    updateDashboard();
+    updateMap();
+    loadPoblesSelect();
     showToast('Contenidor eliminat correctament');
-    await loadContenidors();
   };
 
-  // Guardar contenidor
-  async function saveContenidor() {
+  function saveContenidor() {
     const carrer = document.getElementById('carrer').value.trim();
     const numero = document.getElementById('numero').value.trim();
     const poble = document.getElementById('poble').value;
@@ -822,36 +829,36 @@
       return;
     }
 
-    const data = {
-      carrer,
-      num_tancament: numero,
-      poble,
-      tipus,
-      lat,
-      lng,
-      estat: 'Pendent'
-    };
-
-    let error;
     if (editId) {
-      const result = await supabase
-        .from('contenidors')
-        .update(data)
-        .eq('id', editId);
-      error = result.error;
+      const index = contenidors.findIndex(c => c.id == editId);
+      if (index !== -1) {
+        contenidors[index] = {
+          ...contenidors[index],
+          carrer,
+          num_tancament: numero,
+          poble,
+          tipus,
+          lat,
+          lng
+        };
+        showToast('Contenidor actualitzat');
+      }
     } else {
-      const result = await supabase
-        .from('contenidors')
-        .insert([data]);
-      error = result.error;
+      const newId = Date.now();
+      contenidors.push({
+        id: newId,
+        carrer,
+        num_tancament: numero,
+        poble,
+        tipus,
+        lat,
+        lng,
+        estat: 'Pendent'
+      });
+      showToast('Contenidor afegit correctament');
     }
 
-    if (error) {
-      showToast('Error guardant contenidor', 'error');
-      return;
-    }
-
-    showToast(editId ? 'Contenidor actualitzat' : 'Contenidor afegit correctament');
+    saveContenidors();
     
     // Netejar formulari
     document.getElementById('carrer').value = '';
@@ -862,10 +869,13 @@
     document.getElementById('cancelEditBtn').classList.add('hidden');
     document.getElementById('saveContenidorBtn').textContent = 'Guardar Contenidor';
     
-    await loadContenidors();
+    renderContenidorsTable();
+    renderRutesTable();
+    updateDashboard();
+    loadPoblesSelect();
+    updateMap();
   }
 
-  // Cancel·lar edició
   function cancelEdit() {
     document.getElementById('carrer').value = '';
     document.getElementById('numero').value = '';
@@ -876,7 +886,6 @@
     document.getElementById('saveContenidorBtn').textContent = 'Guardar Contenidor';
   }
 
-  // Obtenir ubicació
   function getLocation() {
     if (!navigator.geolocation) {
       showToast('Geolocalització no suportada', 'error');
@@ -895,99 +904,70 @@
     );
   }
 
-  // Carregar usuaris
-  async function loadUsuaris() {
-    const { data, error } = await supabase
-      .from('usuaris_personalitzats')
-      .select('*');
-
-    if (error) return;
-
-    usuaris = data || [];
-    renderUsuarisTable();
-    document.getElementById('totalUsuaris').textContent = usuaris.filter(u => u.role !== 'admin').length;
-  }
-
-  // Renderitzar usuaris
+  // ==================== USUARIS ====================
   function renderUsuarisTable() {
     const tbody = document.querySelector('#usuarisTable tbody');
     if (!tbody) return;
 
-    tbody.innerHTML = usuaris
-      .filter(u => u.role !== 'admin')
-      .map(u => `
-        <tr>
-          <td>${u.display_name || u.nom}</td>
-          <td>${u.nom}</td>
-          <td><span class="badge">${u.role === 'admin' ? 'Admin' : 'Conductor'}</span></td>
-          <td>
-            <button class="btn-sm btn-danger" onclick="deleteUsuari('${u.id}')"><i class="fas fa-trash"></i></button>
-          </td>
-        </tr>
-      `).join('');
+    const nonAdminUsers = usuaris.filter(u => u.role !== 'admin');
+    document.getElementById('totalUsuaris').textContent = nonAdminUsers.length;
+
+    tbody.innerHTML = nonAdminUsers.map(u => `
+      <tr>
+        <td>${u.display_name || u.nom.split('@')[0]}</td>
+        <td>${u.nom}</td>
+        <td><span class="badge">Conductor</span></td>
+        <td>
+          <button class="btn-sm btn-danger" onclick="deleteUsuari('${u.id}')"><i class="fas fa-trash"></i></button>
+        </td>
+      </tr>
+    `).join('');
   }
 
-  // Eliminar usuari
-  window.deleteUsuari = async (id) => {
+  window.deleteUsuari = (id) => {
     if (!confirm('Eliminar aquest usuari?')) return;
-
-    const { error } = await supabase
-      .from('usuaris_personalitzats')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      showToast('Error eliminant usuari', 'error');
-      return;
-    }
-
+    usuaris = usuaris.filter(u => u.id !== id);
+    saveUsuaris();
+    renderUsuarisTable();
     showToast('Usuari eliminat');
-    await loadUsuaris();
   };
 
-  // Afegir usuari
-  async function addUser() {
-    const email = document.getElementById('userEmail').value.trim();
-    const displayName = document.getElementById('userName').value.trim();
-    const password = document.getElementById('userPassword').value;
-    const role = document.getElementById('userRole').value;
+  function addUser() {
+    const nom = document.getElementById('userNameInput').value.trim();
+    const email = document.getElementById('userEmailInput').value.trim();
+    const password = document.getElementById('userPasswordInput').value;
+    const role = document.getElementById('userRoleSelect').value;
 
-    if (!email || !password) {
-      showToast('Email i contrasenya obligatoris', 'error');
+    if (!nom || !email || !password) {
+      showToast('Si us plau, omple tots els camps', 'error');
       return;
     }
 
-    try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: email,
-        password: password
-      });
-
-      if (authError) throw authError;
-
-      const { error: perfilError } = await supabase
-        .from('usuaris_personalitzats')
-        .insert([{
-          user_id: authData.user.id,
-          nom: email,
-          display_name: displayName || email.split('@')[0],
-          role: role
-        }]);
-
-      if (perfilError) throw perfilError;
-
-      showToast('Usuari creat correctament');
-      document.getElementById('userEmail').value = '';
-      document.getElementById('userName').value = '';
-      document.getElementById('userPassword').value = '';
-      
-      await loadUsuaris();
-    } catch (error) {
-      showToast('Error creant usuari: ' + error.message, 'error');
+    if (usuaris.some(u => u.nom === email)) {
+      showToast('Aquest email ja està registrat', 'error');
+      return;
     }
+
+    const newUser = {
+      id: 'user_' + Date.now(),
+      nom: email,
+      display_name: nom,
+      password: password,
+      role: role
+    };
+
+    usuaris.push(newUser);
+    saveUsuaris();
+    renderUsuarisTable();
+    
+    document.getElementById('userNameInput').value = '';
+    document.getElementById('userEmailInput').value = '';
+    document.getElementById('userPasswordInput').value = '';
+    
+    showToast('Usuari creat correctament');
   }
 
-  // Carregar pobles als selects
+  // ==================== POBLES ====================
   function loadPoblesSelect() {
     const pobles = [...new Set(contenidors.map(c => c.poble))].sort();
     const selects = ['filtrePoble', 'rutaPoble', 'mapPoble', 'poble'];
@@ -1002,19 +982,7 @@
     });
   }
 
-  // Obtenir color pel tipus
-  function getTipusColor(tipus) {
-    const colors = {
-      'Orgànica': '#8B4513',
-      'Resta': '#1a1a1a',
-      'Envasos': '#fbbf24',
-      'Paper': '#3b82f6',
-      'Vidre': '#22c55e'
-    };
-    return colors[tipus] || '#64748b';
-  }
-
-  // Actualitzar dashboard
+  // ==================== DASHBOARD ====================
   function updateDashboard() {
     const total = contenidors.length;
     const completats = contenidors.filter(c => c.estat === 'Completada').length;
@@ -1044,17 +1012,19 @@
           <td>${d.completats}</td>
           <td>${d.total - d.completats}</td>
           <td>
-            <div style="background:#e2e8f0; border-radius:10px; height:8px; width:100px;">
-              <div style="background:${percent === 100 ? '#10b981' : '#4f46e5'}; width:${percent}%; height:8px; border-radius:10px;"></div>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <div style="background:#e2e8f0; border-radius:10px; width:100px; height:8px;">
+                <div style="background:${percent === 100 ? '#10b981' : '#4f46e5'}; width:${percent}%; height:8px; border-radius:10px;"></div>
+              </div>
+              <span>${percent}%</span>
             </div>
-            ${percent}%
           </td>
         </tr>`;
       }).join('');
     }
   }
 
-  // Inicialitzar mapa
+  // ==================== MAPA ====================
   function initMap() {
     if (map) map.remove();
     map = L.map('map').setView([41.7, 1.8], 8);
@@ -1065,7 +1035,6 @@
     }).addTo(map);
   }
 
-  // Actualitzar mapa
   function updateMap() {
     if (!map) initMap();
     
@@ -1079,14 +1048,31 @@
     if (poble) filtered = filtered.filter(c => c.poble === poble);
     if (tipus) filtered = filtered.filter(c => c.tipus === tipus);
 
+    const colors = {
+      'Orgànica': '#8B4513',
+      'Resta': '#1a1a1a',
+      'Envasos': '#fbbf24',
+      'Paper': '#3b82f6',
+      'Vidre': '#22c55e'
+    };
+
     filtered.forEach(c => {
-      const marker = L.marker([c.lat, c.lng]).addTo(map);
+      const markerColor = colors[c.tipus] || '#64748b';
+      const marker = L.circleMarker([c.lat, c.lng], {
+        radius: 10,
+        fillColor: markerColor,
+        color: '#fff',
+        weight: 2,
+        opacity: 1,
+        fillOpacity: 0.8
+      }).addTo(map);
+      
       marker.bindPopup(`
         <b>${c.carrer} ${c.num_tancament || ''}</b><br>
         Poble: ${c.poble}<br>
         Tipus: ${c.tipus}<br>
         Estat: ${c.estat || 'Pendent'}<br>
-        <button onclick="toggleEstat(${c.id}, '${c.estat}')" class="btn-sm btn-success">Marcar ${c.estat === 'Completada' ? 'Pendent' : 'Completada'}</button>
+        <button onclick="toggleEstat(${c.id})" class="btn-sm btn-success" style="margin-top:5px;">Marcar ${c.estat === 'Completada' ? 'Pendent' : 'Completada'}</button>
       `);
       markers.push(marker);
     });
@@ -1097,48 +1083,38 @@
     }
   }
 
-  // Carregar dades d'exemple
-  async function loadSampleData() {
+  // ==================== DADES D'EXEMPLE ====================
+  function loadSampleData() {
     if (!confirm('Això sobreescriurà les dades actuals. Vols continuar?')) return;
 
     const sampleData = [
-      { carrer: 'Major', num_tancament: '1', poble: 'Sallent', tipus: 'Orgànica', lat: 41.8245, lng: 1.8950, estat: 'Pendent' },
-      { carrer: 'Major', num_tancament: '2', poble: 'Sallent', tipus: 'Resta', lat: 41.8246, lng: 1.8951, estat: 'Pendent' },
-      { carrer: 'Sant Antoni', num_tancament: '5', poble: 'Sallent', tipus: 'Envasos', lat: 41.8250, lng: 1.8945, estat: 'Completada' },
-      { carrer: 'Major', num_tancament: '10', poble: 'Balsareny', tipus: 'Paper', lat: 41.8619, lng: 1.8772, estat: 'Pendent' },
-      { carrer: 'Nou', num_tancament: '3', poble: 'Balsareny', tipus: 'Vidre', lat: 41.8620, lng: 1.8775, estat: 'Pendent' },
-      { carrer: 'Pau Casals', num_tancament: '8', poble: 'Balsareny', tipus: 'Orgànica', lat: 41.8625, lng: 1.8765, estat: 'Completada' },
-      { carrer: 'del Pont', num_tancament: '15', poble: 'Pont de Vilomara', tipus: 'Resta', lat: 41.7050, lng: 1.9050, estat: 'Pendent' },
-      { carrer: 'Sant Pere', num_tancament: '22', poble: 'Pont de Vilomara', tipus: 'Envasos', lat: 41.7045, lng: 1.9045, estat: 'Pendent' },
-      { carrer: 'Major', num_tancament: '7', poble: 'Mura', tipus: 'Paper', lat: 41.7000, lng: 1.9760, estat: 'Completada' },
-      { carrer: 'de l\'Església', num_tancament: '4', poble: 'Mura', tipus: 'Vidre', lat: 41.6995, lng: 1.9755, estat: 'Pendent' }
+      { id: 1, carrer: 'Major', num_tancament: '1', poble: 'Sallent', tipus: 'Orgànica', lat: 41.8245, lng: 1.8950, estat: 'Pendent' },
+      { id: 2, carrer: 'Major', num_tancament: '2', poble: 'Sallent', tipus: 'Resta', lat: 41.8246, lng: 1.8951, estat: 'Pendent' },
+      { id: 3, carrer: 'Sant Antoni', num_tancament: '5', poble: 'Sallent', tipus: 'Envasos', lat: 41.8250, lng: 1.8945, estat: 'Completada' },
+      { id: 4, carrer: 'Major', num_tancament: '10', poble: 'Balsareny', tipus: 'Paper', lat: 41.8619, lng: 1.8772, estat: 'Pendent' },
+      { id: 5, carrer: 'Nou', num_tancament: '3', poble: 'Balsareny', tipus: 'Vidre', lat: 41.8620, lng: 1.8775, estat: 'Pendent' },
+      { id: 6, carrer: 'Pau Casals', num_tancament: '8', poble: 'Balsareny', tipus: 'Orgànica', lat: 41.8625, lng: 1.8765, estat: 'Completada' },
+      { id: 7, carrer: 'del Pont', num_tancament: '15', poble: 'Pont de Vilomara', tipus: 'Resta', lat: 41.7050, lng: 1.9050, estat: 'Pendent' },
+      { id: 8, carrer: 'Sant Pere', num_tancament: '22', poble: 'Pont de Vilomara', tipus: 'Envasos', lat: 41.7045, lng: 1.9045, estat: 'Pendent' },
+      { id: 9, carrer: 'Major', num_tancament: '7', poble: 'Mura', tipus: 'Paper', lat: 41.7000, lng: 1.9760, estat: 'Completada' },
+      { id: 10, carrer: 'de l\'Església', num_tancament: '4', poble: 'Mura', tipus: 'Vidre', lat: 41.6995, lng: 1.9755, estat: 'Pendent' },
+      { id: 11, carrer: 'Major', num_tancament: '12', poble: 'Talamanca', tipus: 'Orgànica', lat: 41.7400, lng: 1.9780, estat: 'Pendent' },
+      { id: 12, carrer: 'de la Font', num_tancament: '3', poble: 'Talamanca', tipus: 'Resta', lat: 41.7395, lng: 1.9775, estat: 'Completada' }
     ];
 
-    const { error } = await supabase
-      .from('contenidors')
-      .delete()
-      .neq('id', 0);
-
-    if (error) {
-      showToast('Error netejant dades', 'error');
-      return;
-    }
-
-    const { error: insertError } = await supabase
-      .from('contenidors')
-      .insert(sampleData);
-
-    if (insertError) {
-      showToast('Error carregant dades', 'error');
-      return;
-    }
-
-    showToast('Dades d\'exemple carregades correctament');
-    await loadContenidors();
+    contenidors = sampleData;
+    saveContenidors();
+    
+    renderContenidorsTable();
+    renderRutesTable();
+    updateDashboard();
     loadPoblesSelect();
+    updateMap();
+    
+    showToast('Dades d\'exemple carregades correctament');
   }
 
-  // Exportar a Excel
+  // ==================== EXPORTACIONS ====================
   function exportToExcel() {
     const wsData = [['Carrer', 'Número', 'Poble', 'Tipus', 'Latitud', 'Longitud', 'Estat']];
     contenidors.forEach(c => {
@@ -1152,10 +1128,9 @@
     showToast('Exportat a Excel correctament');
   }
 
-  // Exportar a PDF
   function exportToPDF() {
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+    const doc = new jsPDF('landscape');
     
     doc.setFontSize(16);
     doc.text('Informe de Contenidors LOGO Rutes', 20, 20);
@@ -1165,21 +1140,30 @@
     let y = 50;
     doc.text('Carrer', 20, y);
     doc.text('Número', 70, y);
-    doc.text('Poble', 100, y);
-    doc.text('Tipus', 130, y);
-    doc.text('Estat', 160, y);
+    doc.text('Poble', 110, y);
+    doc.text('Tipus', 150, y);
+    doc.text('Estat', 190, y);
+    doc.text('Coordenades', 230, y);
     y += 10;
     
     contenidors.slice(0, 30).forEach(c => {
-      if (y > 270) {
+      if (y > 190) {
         doc.addPage();
         y = 20;
+        doc.text('Carrer', 20, y);
+        doc.text('Número', 70, y);
+        doc.text('Poble', 110, y);
+        doc.text('Tipus', 150, y);
+        doc.text('Estat', 190, y);
+        doc.text('Coordenades', 230, y);
+        y += 10;
       }
-      doc.text(c.carrer.substring(0, 20), 20, y);
+      doc.text(c.carrer.substring(0, 25), 20, y);
       doc.text((c.num_tancament || '-').substring(0, 10), 70, y);
-      doc.text(c.poble.substring(0, 15), 100, y);
-      doc.text(c.tipus, 130, y);
-      doc.text(c.estat || 'Pendent', 160, y);
+      doc.text(c.poble.substring(0, 15), 110, y);
+      doc.text(c.tipus, 150, y);
+      doc.text(c.estat || 'Pendent', 190, y);
+      doc.text(c.lat && c.lng ? `${c.lat.toFixed(4)},${c.lng.toFixed(4)}` : '-', 230, y);
       y += 8;
     });
     
@@ -1187,26 +1171,22 @@
     showToast('Exportat a PDF correctament');
   }
 
-  // Netejar dades
-  async function clearData() {
+  function clearData() {
     if (!confirm('⚠️ Això eliminarà TOTES les dades. Vols continuar?')) return;
 
-    const { error } = await supabase
-      .from('contenidors')
-      .delete()
-      .neq('id', 0);
-
-    if (error) {
-      showToast('Error netejant dades', 'error');
-      return;
-    }
-
-    showToast('Dades eliminades correctament');
-    await loadContenidors();
+    contenidors = [];
+    saveContenidors();
+    
+    renderContenidorsTable();
+    renderRutesTable();
+    updateDashboard();
     loadPoblesSelect();
+    updateMap();
+    
+    showToast('Dades eliminades correctament');
   }
 
-  // Event Listeners
+  // ==================== EVENT LISTENERS ====================
   document.getElementById('loginBtn').addEventListener('click', login);
   document.getElementById('logoutBtn').addEventListener('click', logout);
   document.getElementById('saveContenidorBtn').addEventListener('click', saveContenidor);
@@ -1222,6 +1202,7 @@
   // Filtres
   document.getElementById('filtrePoble').addEventListener('change', () => { currentPage = 1; renderContenidorsTable(); });
   document.getElementById('filtreTipus').addEventListener('change', () => { currentPage = 1; renderContenidorsTable(); });
+  document.getElementById('filtreEstat').addEventListener('change', () => { currentPage = 1; renderContenidorsTable(); });
   document.getElementById('searchInput').addEventListener('input', () => { currentPage = 1; renderContenidorsTable(); });
   document.getElementById('rutaPoble').addEventListener('change', renderRutesTable);
   document.getElementById('rutaTipus').addEventListener('change', renderRutesTable);
@@ -1244,8 +1225,7 @@
   });
 
   // Iniciar aplicació
-  initSupabase();
-  initMap();
+  initData();
 </script>
 </body>
 </html>
